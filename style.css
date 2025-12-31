@@ -37,6 +37,7 @@ body {
     border: 10px solid var(--main-yellow);
     transition: transform 0.2s ease-out;
     transform-origin: center; /* 追加: 中央基準でスケーリング */
+    flex-shrink: 0;
 }
 
 /* --- Settings Menu Styles --- */
@@ -392,7 +393,7 @@ body {
     width: 260px;
 }
 
-#action-buttons button { padding: 10px; font-size: 1em; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 800; cursor: pointer; border: none; border-radius: 20px; color: #fff; transition: all 0.1s ease-out; text-shadow: 2px 2px 3px rgba(0,0,0,0.3); border: 3px solid var(--dark-brown); box-shadow: 0 6px 0 var(--dark-brown); }
+#action-buttons button { padding: 10px; font-size: 1em; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 800; cursor: pointer; border: none; border-radius: 20px; color: #fff; transition: all 0.1s ease-out; text-shadow: 2px 2px 3px rgba(0,0,0,0.3); border: 3px solid var(--dark-brown); box-shadow: 0 6px 0 var(--dark-brown);white-space: nowrap; }
 #action-buttons button:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 var(--dark-brown); }
 #action-buttons button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: 0 6px 0 #999; }
 #serve-button { background-color: var(--main-yellow); }
