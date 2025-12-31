@@ -1,10 +1,10 @@
 @charset "UTF-8";
 
 :root {
-    --main-red: #e74c3c;      /* より鮮やかな赤に変更 */
-    --main-yellow: #f1c40f;   /* より鮮やかな黄色に変更 */
-    --main-green: #2ecc71;    /* ポジティブな表現として残す */
-    --main-blue: #3498db;     /* 変更対象 */
+    --main-red: #e74c3c;
+    --main-yellow: #f1c40f;
+    --main-green: #2ecc71;
+    --main-blue: #3498db;
     --main-orange: #f39c12;
     --dark-brown: #6d4c41;
     --light-cream: #fef9e7;
@@ -36,7 +36,7 @@ body {
     border-radius: 30px;
     border: 10px solid var(--main-yellow);
     transition: transform 0.2s ease-out;
-    transform-origin: center; /* 追加: 中央基準でスケーリング */
+    transform-origin: center;
     flex-shrink: 0;
 }
 
@@ -46,7 +46,6 @@ body {
     top: 3px;
     left: 15px;
     z-index: 3000;
-    /* font-size: 2em; は削除または無視されますが、念のため残しても影響は少ないです */
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -61,12 +60,10 @@ body {
     transition: all 0.1s ease;
 }
 
-/* 追加: SVGアイコンのサイズ調整 */
 #settings-icon svg {
     width: 60%;
     height: 60%;
 }
-
 
 #settings-icon:active {
     transform: translateY(2px);
@@ -89,9 +86,7 @@ body {
     gap: 10px;
 }
 
-#settings-panel.open {
-    display: flex;
-}
+#settings-panel.open { display: flex; }
 
 #settings-panel h3 {
     margin: 0 0 10px 0;
@@ -125,9 +120,7 @@ body {
     box-shadow: 0 1px 0 var(--dark-brown);
 }
 
-#zoom-in-button, #zoom-out-button {
-    width: 40px;
-}
+#zoom-in-button, #zoom-out-button { width: 40px; }
 
 #sound-toggle-button.sound-off {
     background-color: #ccc;
@@ -141,7 +134,146 @@ body {
     color: white !important;
 }
 
-/* --- End Settings Menu Styles --- */
+/* --- Shop Button Styles --- */
+#shop-button {
+    position: absolute;
+    top: 3px;
+    left: 65px; /* 設定ボタン(15px+40px)の右側 + 余白10px */
+    z-index: 3000;
+    width: 40px; /* 設定ボタンと同じサイズに変更 */
+    height: 40px; /* 設定ボタンと同じサイズに変更 */
+    border-radius: 50%;
+    background-color: #fff; /* 背景色を白に変更（設定ボタンと統一） */
+    border: 3px solid var(--dark-brown);
+    cursor: pointer;
+    display: none; /* 初期状態は非表示（タイトルでは見せないため） */
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 0 var(--dark-brown);
+    transition: all 0.1s ease;
+}
+
+#shop-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--dark-brown);
+}
+
+#shop-button img {
+    width: 80%; /* アイコンサイズを微調整 */
+    height: 60%;
+    object-fit: contain;
+}
+
+/* --- Shop Modal Styles --- */
+#shop-panel {
+    width: 800px;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#shop-items-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.shop-item {
+    background-color: #fff;
+    border: 3px solid var(--dark-brown);
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.2s;
+    position: relative;
+}
+
+.shop-item:hover { transform: scale(1.02); }
+
+.shop-item.purchased {
+    background-color: #ddd;
+    opacity: 0.8;
+}
+
+.shop-item img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
+.shop-item h4 {
+    margin: 5px 0;
+    font-size: 1.2em;
+    color: var(--dark-brown);
+}
+
+.shop-item .price {
+    font-weight: 800;
+    color: var(--main-red);
+    font-size: 1.3em;
+    margin-bottom: 5px;
+}
+
+.shop-item .desc {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 10px;
+    flex-grow: 1;
+}
+
+.buy-button {
+    background-color: var(--main-green);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    border: 2px solid var(--dark-brown);
+    box-shadow: 0 3px 0 var(--dark-brown);
+}
+
+.buy-button:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+}
+
+.buy-button:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--dark-brown);
+}
+
+.purchased-badge {
+    color: var(--dark-brown);
+    font-weight: bold;
+    background: var(--main-yellow);
+    padding: 5px 15px;
+    border-radius: 20px;
+    border: 2px solid var(--dark-brown);
+}
+
+#close-shop-button {
+    margin-top: 15px;
+    background-color: var(--main-red);
+    color: white;
+    padding: 10px 40px;
+    font-size: 1.2em;
+    border-radius: 15px;
+    border: 3px solid var(--dark-brown);
+    box-shadow: 0 4px 0 var(--dark-brown);
+    cursor: pointer;
+}
+
+/* --- End Shop Styles --- */
 
 #title-screen {
     position: absolute;
@@ -152,14 +284,13 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-image: url('images/title-bg.png');
+    background-image: url('images/title-bg.jpg');
     background-size: cover;
     background-position: center;
     z-index: 2000;
 }
 .title-container {
     text-align: center;
-    /* 背景、枠線、影を削除 */
     background: transparent;
     padding: 0;
     border: none;
@@ -168,14 +299,11 @@ body {
     flex-direction: column;
     align-items: center;
 }
-/* h1はimgタグに置き換えたため、このスタイルは不要になります */
-/* .title-container h1 { font-size: 3em; margin-top: 0; } */
 
-/* ロゴ用のスタイルを追加 */
 .title-logo {
-    width: 650px; /* ロゴのサイズは適宜調整してください */
+    width: 650px;
     height: auto;
-    margin-bottom: -10px; /* ロゴとボタンの間隔 */
+    margin-bottom: -10px;
 }
 
 #start-button { background: linear-gradient(45deg, var(--main-red), var(--main-yellow)); color: white; font-size: 2em; font-family: inherit; font-weight: 800; padding: 20px 50px; border-radius: 100px; border: 5px solid var(--dark-brown); box-shadow: 0 8px 0 var(--dark-brown); cursor: pointer; transition: all 0.1s ease-out; }
@@ -202,9 +330,7 @@ body {
     flex-shrink: 0;
 }
 
-/* 以前のサウンドボタンのスタイルは削除または上書き済み */
-
-#money { color: var(--main-orange); font-weight: 800; } /* 緑からオレンジに変更 */
+#money { color: var(--main-orange); font-weight: 800; }
 .money-popup { position: absolute; top: -20px; right: 50px; font-size: 1.5em; font-weight: 800; animation: money-fly 1.5s ease-out forwards; pointer-events: none; }
 .money-popup.plus { color: var(--main-green); }
 .money-popup.minus { color: var(--main-red); }
@@ -247,17 +373,17 @@ body {
     background-color: transparent;
     border: none;
     box-shadow: none;
-    padding: 10px; /* 内側の要素との余白を確保 */
+    padding: 10px;
 }
 
 #order-bubble {
     background-color: #fff;
     border-radius: 15px;
     padding: 15px;
-    width: 100%; /* 親要素の幅いっぱいに広がるように指定 */
+    width: 100%;
     height: 100%;
-    border: 15px solid var(--main-red); /* 青から赤に変更 */
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); /* 影を調整 */
+    border: 15px solid var(--main-red);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 #order-list { list-style: none; padding: 0; margin: 0; font-size: 1.1em; text-align: left; }
 #order-list li {
@@ -289,14 +415,12 @@ body {
     transform: translateX(-50%);
     height: 150%;
     width: auto;
-    z-index: 10; /* 背景(0)より手前 */
+    z-index: 10;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
 }
 
-#customer-image.visible {
-    opacity: 1;
-}
+#customer-image.visible { opacity: 1; }
 
 #foreground-counter {
     position: absolute;
@@ -304,8 +428,8 @@ body {
     left: 0;
     width: 100%;
     height: auto;
-    pointer-events: none; /* カウンターがクリックを邪魔しないように */
-    z-index: 20; /* お客さん(10)より手前 */
+    pointer-events: none;
+    z-index: 20;
 }
 
 #creation-display {
@@ -316,7 +440,7 @@ body {
     left: 100px;
     height: 300px;
     align-items: flex-end;
-    z-index: 30; /* カウンター(20)より手前 */
+    z-index: 30;
 }
 #burger-stack { width: 250px; display: flex; flex-direction: column-reverse; align-items: center; }
 .ingredient-image-stack { position: relative; width: 100%; text-align: center; }
@@ -325,7 +449,7 @@ body {
 #drink-display-container {
     width: 120px;
     height: 180px;
-    display: none; /* 初期状態では非表示にする */
+    display: none;
     justify-content: center;
     align-items: center;
     background-color: transparent;
@@ -333,9 +457,7 @@ body {
     border-radius: 10px;
 }
 
-#drink-display-container.visible {
-    display: flex; /* visibleクラスがついたら表示する */
-}
+#drink-display-container.visible { display: flex; }
 #drink-display { display: flex; justify-content: center; align-items: center; width: 90%; height: 90%; text-align: center; color: #fff; font-size: 1.2em; text-shadow: 1px 1px 2px #333; }
 #drink-display img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
@@ -369,8 +491,24 @@ body {
 }
 
 #drinks-panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; border-left: 3px dashed var(--dark-brown); padding-left: 20px; }
-#ingredients-panel button, #drinks-panel button { display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: inherit; cursor: pointer; background-color: #fff; transition: all 0.1s ease-out; width: 80px; height: 75px; padding: 5px; font-size: 0.8em; border: 3px solid var(--dark-brown); border-radius: 15px; box-shadow: 0 5px 0 var(--dark-brown); position: relative; 
-    color: var(--dark-brown); /* 追加: 文字色を茶色に固定 */
+#ingredients-panel button, #drinks-panel button { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    font-family: inherit; 
+    cursor: pointer; 
+    background-color: #fff; 
+    transition: all 0.1s ease-out; 
+    width: 80px; 
+    height: 75px; 
+    padding: 5px; 
+    font-size: 0.8em; 
+    border: 3px solid var(--dark-brown); 
+    border-radius: 15px; 
+    box-shadow: 0 5px 0 var(--dark-brown); 
+    position: relative; 
+    color: var(--dark-brown); 
 }
 #ingredients-panel button:hover:not(:disabled), #drinks-panel button:hover:not(:disabled) { background-color: var(--main-yellow); transform: translateY(-2px) scale(1.05); }
 #ingredients-panel button:active:not(:disabled), #drinks-panel button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 var(--dark-brown); }
@@ -393,7 +531,7 @@ body {
     width: 260px;
 }
 
-#action-buttons button { padding: 10px; font-size: 1em; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 800; cursor: pointer; border: none; border-radius: 20px; color: #fff; transition: all 0.1s ease-out; text-shadow: 2px 2px 3px rgba(0,0,0,0.3); border: 3px solid var(--dark-brown); box-shadow: 0 6px 0 var(--dark-brown);white-space: nowrap; }
+#action-buttons button { padding: 10px; font-size: 1em; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 800; cursor: pointer; border: none; border-radius: 20px; color: #fff; transition: all 0.1s ease-out; text-shadow: 2px 2px 3px rgba(0,0,0,0.3); border: 3px solid var(--dark-brown); box-shadow: 0 6px 0 var(--dark-brown); white-space: nowrap; }
 #action-buttons button:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 var(--dark-brown); }
 #action-buttons button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: 0 6px 0 #999; }
 #serve-button { background-color: var(--main-yellow); }
@@ -415,7 +553,7 @@ body {
 }#restock-area { width: 400px; text-align: center; }
 #restock-controls { display: flex; margin: 20px 0; padding: 20px; background-color: #fff5e1; border-radius: 15px; border: 3px dashed var(--dark-brown); flex-direction: column; align-items: center; gap: 15px; }
 #restock-select { font-family: inherit; font-size: 1em; padding: 10px; border-radius: 10px; border: 2px solid var(--dark-brown); width: 95%; }
-#confirm-restock-button { background-color: var(--main-yellow); color: var(--dark-brown); font-family: inherit; font-size: 1.2em; padding: 10px 30px; border: 3px solid var(--dark-brown); border-radius: 10px; box-shadow: 0 5px 0 var(--dark-brown); cursor: pointer; transition: all 0.1s ease-out; } /* 緑から黄色に変更、文字色を調整 */
+#confirm-restock-button { background-color: var(--main-yellow); color: var(--dark-brown); font-family: inherit; font-size: 1.2em; padding: 10px 30px; border: 3px solid var(--dark-brown); border-radius: 10px; box-shadow: 0 5px 0 var(--dark-brown); cursor: pointer; transition: all 0.1s ease-out; }
 #confirm-restock-button:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--dark-brown); }
 #close-restock-button { margin-top: 10px; background-color: var(--main-orange); color: white; padding: 10px 30px; font-size: 1em; border-radius: 10px; border: 3px solid var(--dark-brown); box-shadow: 0 4px 0 var(--dark-brown); cursor: pointer; }
 
@@ -423,15 +561,27 @@ body {
 .completed-visuals {
     display: flex;
     justify-content: center;
-    align-items: center; /* 中央揃えに変更 */
+    align-items: center;
     margin-bottom: 20px;
     height: 300px;
 }.burger-image-container { position: relative; width: 350px; height: 100%; }
 .completed-ingredient-image { position: absolute; left: 50%; transform: translateX(-50%); width: 280px; height: auto; transform-origin: bottom center; animation: place-ingredient 0.3s ease-out forwards; opacity: 0; }
 @keyframes place-ingredient { from { transform: translateX(-50%) translateY(-50px) scale(1.2); opacity: 0; } to { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; } }
 .completed-drink-image { height: 180px; width: auto; margin-left: 20px; animation: place-ingredient 0.3s ease-out 0.5s forwards; opacity: 0; }
-.burger-name { font-size: 2em; font-weight: 800; color: var(--main-yellow); text-shadow: 2px 2px 0 var(--dark-brown), -2px -2px 0 var(--dark-brown), 2px -2px 0 var(--dark-brown), -2px 2px 0 var(--dark-brown); margin-top: 10px; }
-.burger-price { font-size: 1.5em; color: white; margin-top: 10px; background-color: var(--dark-brown); padding: 5px 15px; border-radius: 10px; box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
+.burger-name { 
+    font-size: 2.2em; 
+    font-weight: 800; 
+    color: var(--main-yellow); 
+    
+    /* 修正: 隙間のない太い縁取りに変更 */
+    -webkit-text-stroke: 4px var(--dark-brown);
+    paint-order: stroke fill; /* 縁取りを文字の下に描画して文字痩せを防ぐ */
+    
+    /* 立体感を出すための影を少し追加 */
+    text-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+    
+    margin-top: 10px; 
+}.burger-price { font-size: 1.5em; color: white; margin-top: 10px; background-color: var(--dark-brown); padding: 5px 15px; border-radius: 10px; box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
 
 #minigame-dock {
     position: absolute;
@@ -439,13 +589,13 @@ body {
     right: 20px;
     z-index: 150;
 }
-.minigame-container { display: none; width: 450px; background-image: repeating-linear-gradient(-45deg, #fff, #fff 10px, #f7e7e6 10px, #f7e7e6 20px); padding: 20px; border-radius: 20px; border: 5px solid var(--dark-brown); text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative; /* 結果テキストの位置指定のため追加 */ }
+.minigame-container { display: none; width: 450px; background-image: repeating-linear-gradient(-45deg, #fff, #fff 10px, #f7e7e6 10px, #f7e7e6 20px); padding: 20px; border-radius: 20px; border: 5px solid var(--dark-brown); text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative; }
 .minigame-container h3 { margin: 0 auto 15px auto; background: var(--main-yellow); color: var(--dark-brown); padding: 8px 15px; border-radius: 30px; border: 3px solid var(--dark-brown); display: inline-block; }
 .minigame-container p { margin: 0 0 15px 0; font-size: 1.1em; font-weight: 800; color: #555; }
 .grill-meter-bar { width: 100%; height: 50px; background-color: #ddd; border-radius: 10px; border: 3px solid #555; position: relative; overflow: hidden; }
 .grill-zone { position: absolute; height: 100%; }
 .grill-zone.excellent { left: 45%; width: 10%; background-color: #f6e58d; z-index: 3; }
-.grill-zone.good { left: 30%; width: 40%; background-color: rgba(251, 239, 169, 0.6); z-index: 2;} /* 緑から黄色系に変更 */
+.grill-zone.good { left: 30%; width: 40%; background-color: rgba(251, 239, 169, 0.6); z-index: 2;}
 .grill-zone.bad { left: 15%; width: 70%; background-color: #ffbe76; z-index: 1;}
 .grill-cursor { position: absolute; top: -5%; width: 8px; height: 110%; background-color: var(--main-red); box-shadow: 0 0 5px 2px white; z-index: 4; }
 @keyframes grill-swing { from { left: 0; } to { left: calc(100% - 8px); } }
@@ -453,10 +603,10 @@ body {
 .pour-liquid { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background-color: var(--main-orange); transition: height 0.05s linear; border-radius: 0 0 10px 10px; }
 .pour-zone { position: absolute; width: 100%; z-index: 1; left:0; }
 .pour-zone.excellent { top: 15%; height: 10%; background-color: rgba(246, 233, 141, 0.7); border-top: 2px dashed #e5c500; border-bottom: 2px dashed #e5c500; }
-.pour-zone.good { top: 25%; height: 30%; background-color: rgba(251, 239, 169, 0.5); border-top: 2px dashed var(--main-yellow); border-bottom: 2px dashed var(--main-yellow); } /* 緑から黄色系に変更 */
+.pour-zone.good { top: 25%; height: 30%; background-color: rgba(251, 239, 169, 0.5); border-top: 2px dashed var(--main-yellow); border-bottom: 2px dashed var(--main-yellow); }
 #pour-button, #grill-stop-button { font-size: 1.2em; padding: 10px 20px; cursor: pointer; margin-top: 10px; border-radius: 10px; border: 3px solid var(--dark-brown); box-shadow: 0 4px 0 var(--dark-brown); }
 #pour-button:active, #grill-stop-button:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--dark-brown); }
-#pour-button { background-color: var(--main-yellow); color: var(--dark-brown); } /* 青から黄色に変更、文字色を調整 */
+#pour-button { background-color: var(--main-yellow); color: var(--dark-brown); }
 #grill-stop-button { background-color: var(--main-red); color: white; }
 
 .quality-effect { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; background-size: contain; background-repeat: no-repeat; background-position: center; pointer-events: none; opacity: 0; }
@@ -469,7 +619,6 @@ body {
     50% { opacity: 1; transform: translate(-50%, -55%) scale(1.1) rotate(15deg); }
     100% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.8) rotate(0deg); }
 }
-/* good用の新しいアニメーションを追加 */
 @keyframes sparkle-good-anim {
     0% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.7); }
     50% { opacity: 0.8; transform: translate(-50%, -52%) scale(0.9); }
@@ -478,7 +627,7 @@ body {
 
 /* --- Restock Game Styles --- */
 #restock-game-modal {
-    z-index: 2500; /* タイトル画面(2000)や他の要素より手前に表示 */
+    z-index: 2500;
 }
 
 #restock-game-modal .restock-game-panel {
@@ -491,7 +640,6 @@ body {
     max-width: 90%;
 }
 
-/* Selection Screen */
 #restock-selection-screen h2 {
     text-align: center;
     margin-top: 0;
@@ -520,9 +668,7 @@ body {
     transition: all 0.2s ease;
     color: var(--dark-brown);
 }
-.restock-item-button:hover {
-    transform: scale(1.05);
-}
+.restock-item-button:hover { transform: scale(1.05); }
 .restock-item-button.selected {
     border-color: var(--main-yellow);
     box-shadow: 0 0 15px var(--main-yellow);
@@ -568,10 +714,7 @@ body {
     cursor: not-allowed;
 }
 
-/* Minigame Screen */
-#restock-minigame-screen {
-    padding: 15px;
-}
+#restock-minigame-screen { padding: 15px; }
 #minigame-hud {
     display: flex;
     justify-content: space-between;
@@ -610,11 +753,13 @@ body {
 }
 #catch-game-canvas {
     background-color: #a7d8f5;
+    background-image: url('images/restock-bg.jpg');
+    background-size: cover;
+    background-position: center;
     border-radius: 15px;
     border: 5px solid var(--dark-brown);
 }
 
-/* Result Screen */
 #restock-result-screen h2 {
     text-align: center;
     margin-top: 0;
@@ -630,6 +775,7 @@ body {
 }
 .result-item {
     text-align: center;
+    color: var(--dark-brown);
 }
 .result-item p {
     font-size: 1.5em;
@@ -664,7 +810,6 @@ body {
     color: white;
 }
 
-/* Stock Popup Animation */
 .stock-popup-animation {
     position: absolute;
     top: -10px;
@@ -680,7 +825,6 @@ body {
     to { opacity: 0; transform: translateY(-30px); }
 }
 
-/* --- Restock Confirm Popup Button Style --- */
 .action-button-style {
     font-size: 1.2em;
     padding: 12px 30px;
@@ -695,7 +839,6 @@ body {
 #restock-pay-button { background-color: var(--main-green); }
 #restock-cancel-button { background-color: var(--main-red); }
 
-/* --- Restock Cancel/Abort Buttons --- */
 #restock-cancel-selection-button {
     background-color: var(--main-orange);
     color: white;
@@ -721,7 +864,6 @@ body {
     font-family: inherit;
 }
 
-/* --- Grill Minigame Visuals --- */
 #grill-visuals {
     position: relative;
     width: 200px;
@@ -746,39 +888,149 @@ body {
 }
 
 @keyframes grill-shake {
-    from {
-        transform: translate(-50%, 0px);
-    }
-    to {
-        transform: translate(-50%, -5px);
-    }
+    from { transform: translate(-50%, 0px); }
+    to { transform: translate(-50%, -5px); }
 }
 
-/* ミニゲーム結果テキスト用のスタイルを新規追加 */
 .minigame-result-text {
-    position: fixed; /* 画面基準の位置指定 */
-    top: 45%; /* 画面の縦中央あたり */
+    position: fixed;
+    top: 45%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 5em; /* フォントサイズを大きく */
+    font-size: 5em;
     font-weight: 800;
-    -webkit-text-stroke: 4px var(---main-yellow); /* 縁取りを少し細く変更 */
+    -webkit-text-stroke: 4px var(---main-yellow);
     text-shadow: 0 8px 15px rgba(0,0,0,0.5);
-    z-index: 1000; /* 他の要素より手前に表示 */
+    z-index: 1000;
     pointer-events: none;
     animation: result-pop 1.2s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.minigame-result-text.excellent {
-    color: var(--main-yellow);
-}
-
-.minigame-result-text.good {
-    color: var(--main-yellow); /* var(--main-orange) から変更 */
-}
+.minigame-result-text.excellent { color: var(--main-yellow); }
+.minigame-result-text.good { color: var(--main-yellow); }
 
 @keyframes result-pop {
     0% { transform: translate(-50%, -50%) scale(0.3) rotate(-15deg); opacity: 0; }
     60% { transform: translate(-50%, -50%) scale(1.1) rotate(5deg); opacity: 1; }
     100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* --- Jukebox Object Styles --- */
+#jukebox-object {
+    position: absolute;
+    bottom: 20%; /* カウンターの上、座席の少し上くらい */
+    right: 5%;   /* 青丸のあたり */
+    width: 15%;  /* サイズ調整 */
+    height: auto;
+    z-index: 5;  /* 背景(0) < ジュークボックス(5) < お客さん(10) */
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+#jukebox-object:hover {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
+}
+
+#jukebox-object:active {
+    transform: scale(0.95);
+}
+
+/* --- BGM Select Modal Styles --- */
+.bgm-option {
+    padding: 15px;
+    font-size: 1.2em;
+    font-family: inherit;
+    font-weight: bold;
+    background-color: #fff;
+    border: 3px solid var(--dark-brown);
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.1s;
+    color: var(--dark-brown);
+}
+
+.bgm-option:hover {
+    background-color: var(--main-yellow);
+}
+
+.bgm-option.active {
+    background-color: var(--main-orange);
+    color: white;
+    border-color: var(--main-red);
+}
+
+#close-bgm-modal {
+    background-color: var(--main-red);
+    color: white;
+    padding: 10px 30px;
+    font-size: 1.1em;
+    border-radius: 10px;
+    border: 3px solid var(--dark-brown);
+    cursor: pointer;
+}
+
+/* --- 以下のCSSを追加してください --- */
+
+.burger-score-badge {
+    position: absolute;
+    top: 50px;
+    right: 50px;
+    background-color: #fff;
+    border: 5px solid var(--main-red);
+    border-radius: 50%;
+    width: 140px;
+    height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    transform: rotate(15deg);
+    z-index: 100;
+    opacity: 0;
+    animation: score-stamp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.6s forwards;
+}
+
+@keyframes score-stamp {
+    from { transform: scale(3) rotate(-15deg); opacity: 0; }
+    to { transform: scale(1) rotate(15deg); opacity: 1; }
+}
+
+.score-label {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: var(--dark-brown);
+}
+
+.score-value {
+    font-size: 2.5em;
+    font-weight: 800;
+    color: var(--main-red);
+    line-height: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.score-bonus {
+    font-size: 0.4em;
+    margin-top: -5px;
+}
+.score-bonus.plus { color: var(--main-green); }
+.score-bonus.minus { color: var(--main-blue); }
+
+.score-unit {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--dark-brown);
+}
+
+#completed-burger-modal .completed-burger-container {
+    position: relative; /* スコアバッジの絶対配置の基準にするため */
+    padding: 40px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 30px;
+    border: 5px solid var(--dark-brown);
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
 }

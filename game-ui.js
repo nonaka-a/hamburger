@@ -14,7 +14,9 @@ Object.assign(hamburgerGame, {
             restockAgainButton: '#restock-again-button',
             restockConfirmPopup: '#restock-confirm-popup', restockConfirmMessage: '#restock-confirm-message', restockPayButton: '#restock-pay-button', restockCancelButton: '#restock-cancel-button',
             restockCancelSelectionButton: '#restock-cancel-selection-button',
-            restockAbortButton: '#restock-abort-button'
+            restockAbortButton: '#restock-abort-button',
+            shopButton: '#shop-button', shopModal: '#shop-modal', shopItemsContainer: '#shop-items-container', closeShopButton: '#close-shop-button', bgmChangeButton: '#bgm-change-button',
+            jukeboxObject: '#jukebox-object', bgmSelectModal: '#bgm-select-modal', closeBgmModal: '#close-bgm-modal', bgmList: '#bgm-list'
         };
         for (const k in s) { this.elements[k] = document.querySelector(s[k]); }
     },
@@ -27,6 +29,30 @@ Object.assign(hamburgerGame, {
         this.elements.zoomOutButton.addEventListener('click', () => this.changeZoom(-0.1));
         this.elements.fullscreenButton.addEventListener('click', () => this.toggleFullscreen());
         this.elements.soundToggleButton.addEventListener('click', () => this.toggleSound());
+        this.elements.shopButton.addEventListener('click', () => this.openShop());
+        this.elements.closeShopButton.addEventListener('click', () => this.closeShop());
+        this.elements.bgmChangeButton.addEventListener('click', () => this.cycleBgm());
+        this.elements.jukeboxObject.addEventListener('click', () => this.openBgmSelect());
+        this.elements.closeBgmModal.addEventListener('click', () => this.closeBgmSelect());
+        
+        this.elements.bgmList.querySelectorAll('.bgm-option').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                this.selectBgm(index);
+                this.updateBgmListUI();
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'p' || e.key === 'P') {
+                this.state.money += 1000;
+                this.showMoneyPopup(1000);
+                this.updateUI();
+                if (this.elements.shopModal.style.display === 'flex') {
+                    this.renderShopItems();
+                }
+            }
+        });
     },
 
     bindGameEvents() {
@@ -67,16 +93,9 @@ Object.assign(hamburgerGame, {
         this.updateGameScale();
     },
 
-    toggleSettingsPanel() {
-        this.elements.settingsPanel.classList.toggle('open');
-    },
-
+    toggleSettingsPanel() { this.elements.settingsPanel.classList.toggle('open'); },
     toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => { console.error(`Error: ${err.message}`); });
-        } else {
-            if (document.exitFullscreen) { document.exitFullscreen(); }
-        }
+        if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err => { console.error(`Error: ${err.message}`); }); } else { if (document.exitFullscreen) { document.exitFullscreen(); } }
     },
 
     initializePanels() { 
@@ -111,12 +130,56 @@ Object.assign(hamburgerGame, {
 
     showMoneyPopup(amount) { const p = document.createElement('div'); p.textContent = `${amount > 0 ? '+' : ''}${amount}円`; p.className = `money-popup ${amount > 0 ? 'plus' : 'minus'}`; this.elements.statusBar.appendChild(p); p.addEventListener('animationend', () => p.remove()); },
 
-    showCompletedBurger(burgerName, earnings) { 
-        const { completedBurgerModal } = this.elements; completedBurgerModal.innerHTML = ''; const container = document.createElement('div'); container.className = 'completed-burger-container'; const visualsContainer = document.createElement('div'); visualsContainer.className = 'completed-visuals'; const imageContainer = document.createElement('div'); imageContainer.className = 'burger-image-container'; let currentHeight = 0; 
+    showCompletedBurger(burgerName, earnings, totalScore, bonusScore) { 
+        const { completedBurgerModal } = this.elements; 
+        completedBurgerModal.innerHTML = ''; 
+        const container = document.createElement('div'); 
+        container.className = 'completed-burger-container'; 
+        
+        // --- スコア表示要素の作成 ---
+        const scoreContainer = document.createElement('div');
+        scoreContainer.className = 'burger-score-badge';
+        scoreContainer.innerHTML = `<div class="score-label">できばえ</div><div class="score-value">${totalScore}${bonusScore !== 0 ? `<span class="score-bonus ${bonusScore > 0 ? 'plus' : 'minus'}">(${bonusScore > 0 ? '+' : ''}${bonusScore})</span>` : ''}</div><div class="score-unit">点</div>`;
+        container.appendChild(scoreContainer);
+        // -------------------------
+
+        const visualsContainer = document.createElement('div'); visualsContainer.className = 'completed-visuals'; const imageContainer = document.createElement('div'); imageContainer.className = 'burger-image-container'; let currentHeight = 0; 
         this.state.currentOrder.burger.forEach((id, index) => { const img = document.createElement('img'); img.src = this.config.IMAGE_PATH + this.data.ingredients[id].image; img.className = 'completed-ingredient-image'; img.style.bottom = `${currentHeight}px`; img.style.zIndex = index; img.style.animationDelay = `${index * 0.15}s`; imageContainer.appendChild(img); currentHeight += this.data.ingredients[id].height; }); visualsContainer.appendChild(imageContainer); 
         if (this.state.currentOrder.drink) { const drinkImg = document.createElement('img'); drinkImg.src = this.config.IMAGE_PATH + this.data.drinks[this.state.currentOrder.drink].image; drinkImg.className = 'completed-drink-image'; visualsContainer.appendChild(drinkImg); } 
         let finalBurgerName = burgerName; if (this.state.playerSelection.drink) { const drinkData = this.data.drinks[this.state.playerSelection.drink.id]; const qualityName = drinkData.qualityNames[this.state.playerSelection.drink.quality]; finalBurgerName += ` + ${qualityName || drinkData.name}`; } 
         const nameEl = document.createElement('div'); nameEl.className = 'burger-name'; nameEl.textContent = finalBurgerName; const priceEl = document.createElement('div'); priceEl.className = 'burger-price'; priceEl.textContent = `${earnings}円で売れました！`; container.appendChild(visualsContainer); container.appendChild(nameEl); container.appendChild(priceEl); completedBurgerModal.appendChild(container); completedBurgerModal.style.display = 'flex'; 
         setTimeout(() => { completedBurgerModal.style.display = 'none'; this.resetForNextCustomer(); }, 3500); 
+    },
+
+    openShop() { if (this.state.minigameActive) return; this.elements.shopModal.style.display = 'flex'; this.renderShopItems(); },
+    closeShop() { this.elements.shopModal.style.display = 'none'; },
+    renderShopItems() {
+        this.elements.shopItemsContainer.innerHTML = '';
+        this.data.shopItems.forEach(item => {
+            const isPurchased = this.state.purchasedItems.includes(item.id);
+            const canBuy = this.state.money >= item.price;
+            if (item.required && !this.state.purchasedItems.includes(item.required)) { return; }
+            const el = document.createElement('div'); el.className = `shop-item ${isPurchased ? 'purchased' : ''}`;
+            el.innerHTML = `<img src="${this.config.IMAGE_PATH + item.image}" alt="${item.name}"><h4>${item.name}</h4><div class="desc">${item.description}</div>${isPurchased ? `<div class="purchased-badge">購入済み</div>` : `<div class="price">${item.price}円</div><button class="buy-button" ${!canBuy ? 'disabled' : ''}>購入する</button>`}`;
+            if (!isPurchased) { const btn = el.querySelector('.buy-button'); btn.addEventListener('click', () => this.buyItem(item)); }
+            this.elements.shopItemsContainer.appendChild(el);
+        });
+    },
+
+    openBgmSelect() {
+        if (this.state.minigameActive) return;
+        this.elements.bgmSelectModal.style.display = 'flex';
+        this.updateBgmListUI();
+    },
+
+    closeBgmSelect() {
+        this.elements.bgmSelectModal.style.display = 'none';
+    },
+
+    updateBgmListUI() {
+        this.elements.bgmList.querySelectorAll('.bgm-option').forEach(btn => {
+            const index = parseInt(btn.dataset.index);
+            btn.classList.toggle('active', index === this.state.bgmIndex);
+        });
     }
 });

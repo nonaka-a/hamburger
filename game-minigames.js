@@ -1,7 +1,40 @@
 Object.assign(hamburgerGame, {
-    startGrillMinigame(id) {
+  startGrillMinigame(id) {
         this.state.minigameActive = true; const { minigameDock, grillMinigame, grillCursor, grillStopButton, grillItemImage } = this.elements;
         const itemData = this.data.ingredients[id];
+
+        // --- フライパンの効果を見た目と判定に反映 ---
+        const hasPremiumPan = this.state.purchasedItems.includes('premium_pan');
+        const excZone = grillMinigame.querySelector('.grill-zone.excellent');
+        const goodZone = grillMinigame.querySelector('.grill-zone.good');
+        const badZone = grillMinigame.querySelector('.grill-zone.bad'); // "bad"クラスだが実際はNormal以上の成功範囲(オレンジ色)
+
+        if (hasPremiumPan) {
+            // Excellent: ±10%
+            excZone.style.width = '20%';
+            excZone.style.left = '40%';
+            // Good: ±30%
+            goodZone.style.width = '60%';
+            goodZone.style.left = '20%';
+            
+            // Normal(成功範囲): 5%〜95% (幅90%) 
+            // これにより焦げる範囲(グレー)が左右5%ずつだけになります
+            badZone.style.width = '90%';
+            badZone.style.left = '5%';
+        } else {
+            // デフォルト設定に戻す
+            // Excellent: ±5%
+            excZone.style.width = '10%';
+            excZone.style.left = '45%';
+            // Good: ±20%
+            goodZone.style.width = '40%';
+            goodZone.style.left = '30%';
+            
+            // Normal(成功範囲): 15%〜85% (幅70%)
+            badZone.style.width = '70%';
+            badZone.style.left = '15%';
+        }
+        // ------------------------------------
 
         grillItemImage.src = this.config.IMAGE_PATH + itemData.image;
         const titleElement = grillMinigame.querySelector('h3');
@@ -12,20 +45,35 @@ Object.assign(hamburgerGame, {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => { animation = grillCursor.animate([{ left: '0%' }, { left: `calc(100% - 8px)` }], { duration: 1000, direction: 'alternate', iterations: Infinity, easing: 'linear' }); });
         });
-        const stopHandler = () => {
-            grillStopButton.onclick = null;
-            this.sounds.grill.pause(); if (animation) animation.pause();
+
+        let isStopped = false;
+
+        const stopHandler = (e) => {
+            if (e.type === 'touchstart') e.preventDefault();
+            
+            if (isStopped) return;
+            isStopped = true;
+
+            this.sounds.grill.pause(); 
+            if (animation) animation.pause();
+            
             const pos = (grillCursor.offsetLeft / grillMinigame.querySelector('.grill-meter-bar').offsetWidth) * 100;
             let quality = 'bad';
             let resultText = '';
 
-            if (pos >= 45 && pos <= 55) {
+            const excRange = hasPremiumPan ? 10 : 5;
+            const goodRange = hasPremiumPan ? 30 : 20;
+            // Normal判定の範囲もアイテム所持時は広げる (5〜95)
+            const normalMin = hasPremiumPan ? 5 : 15;
+            const normalMax = hasPremiumPan ? 95 : 85;
+
+            if (pos >= (50 - excRange) && pos <= (50 + excRange)) {
                 quality = 'excellent';
                 resultText = 'パーフェクト！';
-            } else if (pos >= 30 && pos <= 70) {
+            } else if (pos >= (50 - goodRange) && pos <= (50 + goodRange)) {
                 quality = 'good';
                 resultText = 'グッド！';
-            } else if (pos >= 15 && pos <= 85) {
+            } else if (pos >= normalMin && pos <= normalMax) {
                 quality = 'normal';
             }
 
@@ -37,6 +85,9 @@ Object.assign(hamburgerGame, {
                 minigameDock.appendChild(textEl);
             }
 
+            grillStopButton.removeEventListener('mousedown', stopHandler);
+            grillStopButton.removeEventListener('touchstart', stopHandler);
+
             setTimeout(() => {
                 this.addIngredient(id, quality);
                 minigameDock.style.display = 'none'; grillMinigame.style.display = 'none';
@@ -47,70 +98,92 @@ Object.assign(hamburgerGame, {
                 this.state.minigameActive = false;
             }, 1200);
         };
-        grillStopButton.onclick = stopHandler;
+        grillStopButton.addEventListener('mousedown', stopHandler);
+        grillStopButton.addEventListener('touchstart', stopHandler, { passive: false });
     },
 
-startPourMinigame(id) { 
+    startPourMinigame(id) { 
         this.state.minigameActive = true; 
         const { minigameDock, pourMinigame, pourLiquid, pourButton } = this.elements; 
+
+        // --- サーバーの効果を見た目に反映 ---
+        const hasServer = this.state.purchasedItems.includes('juice_server');
+        const excZone = pourMinigame.querySelector('.pour-zone.excellent');
+        const goodZone = pourMinigame.querySelector('.pour-zone.good');
+
+        if (hasServer) {
+            // Excellent: 70-90% (範囲20%, 上から100-90=10%の位置)
+            excZone.style.height = '20%';
+            excZone.style.top = '10%';
+            // Good: 60-98% (範囲38%, 上から100-98=2%の位置)
+            goodZone.style.height = '38%';
+            goodZone.style.top = '2%';
+        } else {
+            // デフォルト
+            // Excellent: 75-85% (範囲10%, 上から15%)
+            excZone.style.height = '10%';
+            excZone.style.top = '15%';
+            // Good: 65-95% (範囲30%, 上から5%)
+            goodZone.style.height = '30%';
+            goodZone.style.top = '5%';
+        }
+        // ------------------------------------
+
         minigameDock.style.display = 'block'; 
         pourMinigame.style.display = 'block'; 
         pourLiquid.style.height = '0%'; 
         pourLiquid.style.backgroundColor = id === 'coke' ? '#3e2723' : id === 'orange-juice' ? '#ff9800' : '#e3f2fd'; 
         
         let interval;
-        // 二重実行防止のためのフラグ
         let isPouring = false;
         
         const startPour = (e) => { 
-            // タッチイベントの場合はデフォルト動作（スクロールや拡大など）を防ぐ
             if (e.type === 'touchstart') e.preventDefault();
-            
             if (isPouring) return;
             isPouring = true;
-
             this.playSound(this.sounds.pour, true); 
-            interval = setInterval(() => { 
-                pourLiquid.style.height = `${Math.min(100, parseFloat(pourLiquid.style.height) + 1)}%`; 
-            }, 20); 
+            interval = setInterval(() => { pourLiquid.style.height = `${Math.min(100, parseFloat(pourLiquid.style.height) + 1)}%`; }, 20); 
         }; 
         
         const stopPour = (e) => { 
             if (!isPouring) return;
             isPouring = false;
-
             this.sounds.pour.pause(); 
             clearInterval(interval); 
             const height = parseFloat(pourLiquid.style.height); 
             let quality = 'failed'; 
-            if (height >= 75 && height <= 85) quality = 'excellent'; 
-            else if (height >= 65 && height <= 95) quality = 'good'; 
-            else if (height >= 50) quality = 'normal'; 
+
+            if (hasServer) {
+                if (height >= 70 && height <= 90) quality = 'excellent'; 
+                else if (height >= 60 && height <= 98) quality = 'good'; 
+                else if (height >= 50) quality = 'normal';
+            } else {
+                if (height >= 75 && height <= 85) quality = 'excellent'; 
+                else if (height >= 65 && height <= 95) quality = 'good'; 
+                else if (height >= 50) quality = 'normal';
+            }
             
             this.addDrink(id, quality); 
             minigameDock.style.display = 'none'; 
             pourMinigame.style.display = 'none'; 
             this.state.minigameActive = false; 
             
-            // PC用イベント解除
             pourButton.removeEventListener('mousedown', startPour); 
             pourButton.removeEventListener('mouseup', stopPour); 
             pourButton.removeEventListener('mouseleave', stopPour);
-            // タッチデバイス用イベント解除
             pourButton.removeEventListener('touchstart', startPour);
             pourButton.removeEventListener('touchend', stopPour);
             pourButton.removeEventListener('touchcancel', stopPour);
         }; 
         
-        // PC用イベント登録
         pourButton.addEventListener('mousedown', startPour); 
         pourButton.addEventListener('mouseup', stopPour); 
         pourButton.addEventListener('mouseleave', stopPour);
-        // タッチデバイス用イベント登録 (passive: false は preventDefault() を機能させるために必要)
         pourButton.addEventListener('touchstart', startPour, { passive: false });
         pourButton.addEventListener('touchend', stopPour);
         pourButton.addEventListener('touchcancel', stopPour);
     },
+
     startRestockFlow() { if (this.state.minigameActive) return; this.state.minigameActive = true; this.state.restock.selection = []; this.elements.restockGameModal.style.display = 'flex'; this.elements.restockSelectionScreen.style.display = 'block'; this.elements.restockMinigameScreen.style.display = 'none'; this.elements.restockResultScreen.style.display = 'none'; this.populateRestockSelection(); this.updateRestockCost(); },
     
     populateRestockSelection() {
@@ -159,13 +232,11 @@ startPourMinigame(id) {
         this.catchGame.basket = { x: this.catchGame.canvas.width / 2 - 50, y: this.catchGame.canvas.height - 70, width: 100, height: 60, speed: 10, image: this.catchGame.imageCache.basket };
         this.catchGame.items = []; this.catchGame.keys = {};
 
-        // キーボード操作設定
         this.keydownHandler = e => this.catchGame.keys[e.key] = true; 
         this.keyupHandler = e => this.catchGame.keys[e.key] = false;
         document.addEventListener('keydown', this.keydownHandler); 
         document.addEventListener('keyup', this.keyupHandler);
 
-        // --- マウス・タッチ操作設定 ---
         const moveBasket = (clientX) => {
             if (!this.catchGame.canvas) return;
             const rect = this.catchGame.canvas.getBoundingClientRect();
@@ -262,6 +333,11 @@ startPourMinigame(id) {
     },
 
     showRestockResult() {
+        const header = this.elements.restockResultScreen.querySelector('h2');
+        if (header) {
+            header.textContent = `ゲットした食材：お店には${this.state.maxStock}こまでしかおけないよ`;
+        }
+
         const resultEl = this.elements.restockResultList; resultEl.innerHTML = ''; const allItems = { ...this.data.ingredients, ...this.data.drinks };
         if (Object.values(this.state.restock.caughtItems).every(v => v === 0) && this.state.restock.selection.length > 0) { resultEl.innerHTML = '<p style="font-size: 1.5em;">なにもとれませんでした…</p>'; return; }
         for (const id in this.state.restock.caughtItems) {
@@ -278,7 +354,7 @@ startPourMinigame(id) {
             const count = this.state.restock.caughtItems[id];
             if (count > 0) {
                 const currentStock = allItems[id].stock;
-                const newStock = Math.min(currentStock + count, this.config.MAX_STOCK);
+                const newStock = Math.min(currentStock + count, this.state.maxStock);
                 const addedAmount = newStock - currentStock;
                 if (addedAmount > 0) {
                     allItems[id].stock = newStock;
