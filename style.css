@@ -34,8 +34,9 @@ body {
     background-color: var(--light-cream);
     box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.2);
     border-radius: 30px;
-    border: 10px solid var(--main-yellow); /* 白から黄色に変更 */
-    transition: transform 0.2s ease-out; /* ズームアニメーション用 */
+    border: 10px solid var(--main-yellow);
+    transition: transform 0.2s ease-out;
+    transform-origin: center; /* 追加: 中央基準でスケーリング */
 }
 
 /* --- Settings Menu Styles --- */

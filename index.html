@@ -166,9 +166,15 @@
 
     </div>
 
-    <!-- データファイルを先に読み込む -->
+ <!-- データファイルを先に読み込む -->
     <script src="data.js"></script>
-    <!-- ゲームロジックファイルを次に読み込む -->
-    <script src="game.js"></script>
+    <!-- 分割されたゲームファイルを順に読み込む -->
+    <script src="game-core.js"></script>
+    <script src="game-sound.js"></script>
+    <script src="game-ui.js"></script>
+    <script src="game-logic.js"></script>
+    <script src="game-minigames.js"></script>
+    <!-- 最後に起動スクリプトを読み込む -->
+    <script src="main.js"></script>
 </body>
 </html>
