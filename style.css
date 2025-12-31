@@ -45,7 +45,7 @@ body {
     top: 3px;
     left: 15px;
     z-index: 3000;
-    font-size: 2em;
+    /* font-size: 2em; は削除または無視されますが、念のため残しても影響は少ないです */
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -59,6 +59,13 @@ body {
     box-shadow: 0 4px 0 var(--dark-brown);
     transition: all 0.1s ease;
 }
+
+/* 追加: SVGアイコンのサイズ調整 */
+#settings-icon svg {
+    width: 60%;
+    height: 60%;
+}
+
 
 #settings-icon:active {
     transform: translateY(2px);
@@ -361,7 +368,9 @@ body {
 }
 
 #drinks-panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; border-left: 3px dashed var(--dark-brown); padding-left: 20px; }
-#ingredients-panel button, #drinks-panel button { display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: inherit; cursor: pointer; background-color: #fff; transition: all 0.1s ease-out; width: 80px; height: 75px; padding: 5px; font-size: 0.8em; border: 3px solid var(--dark-brown); border-radius: 15px; box-shadow: 0 5px 0 var(--dark-brown); position: relative; }
+#ingredients-panel button, #drinks-panel button { display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: inherit; cursor: pointer; background-color: #fff; transition: all 0.1s ease-out; width: 80px; height: 75px; padding: 5px; font-size: 0.8em; border: 3px solid var(--dark-brown); border-radius: 15px; box-shadow: 0 5px 0 var(--dark-brown); position: relative; 
+    color: var(--dark-brown); /* 追加: 文字色を茶色に固定 */
+}
 #ingredients-panel button:hover:not(:disabled), #drinks-panel button:hover:not(:disabled) { background-color: var(--main-yellow); transform: translateY(-2px) scale(1.05); }
 #ingredients-panel button:active:not(:disabled), #drinks-panel button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 var(--dark-brown); }
 #ingredients-panel button img, #drinks-panel button img { max-width: 80%; max-height: 30px; height: auto; margin-bottom: 2px; }
