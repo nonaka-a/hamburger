@@ -518,6 +518,7 @@ body {
     background-color: #fff;
     cursor: pointer;
     transition: all 0.2s ease;
+    color: var(--dark-brown);
 }
 .restock-item-button:hover {
     transform: scale(1.05);

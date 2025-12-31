@@ -100,20 +100,30 @@ Object.assign(hamburgerGame, {
         this.catchGame.basket = { x: this.catchGame.canvas.width / 2 - 50, y: this.catchGame.canvas.height - 70, width: 100, height: 60, speed: 10, image: this.catchGame.imageCache.basket };
         this.catchGame.items = []; this.catchGame.keys = {};
 
-        this.keydownHandler = e => this.catchGame.keys[e.key] = true; this.keyupHandler = e => this.catchGame.keys[e.key] = false;
-        document.addEventListener('keydown', this.keydownHandler); document.addEventListener('keyup', this.keyupHandler);
+        // キーボード操作設定
+        this.keydownHandler = e => this.catchGame.keys[e.key] = true; 
+        this.keyupHandler = e => this.catchGame.keys[e.key] = false;
+        document.addEventListener('keydown', this.keydownHandler); 
+        document.addEventListener('keyup', this.keyupHandler);
 
-        this.catchGame.mousemoveHandler = e => {
+        // --- マウス・タッチ操作設定 ---
+        const moveBasket = (clientX) => {
             if (!this.catchGame.canvas) return;
             const rect = this.catchGame.canvas.getBoundingClientRect();
-            let mouseX = e.clientX - rect.left;
+            const scaleX = this.catchGame.canvas.width / rect.width;
+            let mouseX = (clientX - rect.left) * scaleX;
             this.catchGame.basket.x = mouseX - this.catchGame.basket.width / 2;
             if (this.catchGame.basket.x < 0) this.catchGame.basket.x = 0;
             if (this.catchGame.basket.x > this.catchGame.canvas.width - this.catchGame.basket.width) {
                 this.catchGame.basket.x = this.catchGame.canvas.width - this.catchGame.basket.width;
             }
         };
+
+        this.catchGame.mousemoveHandler = e => { moveBasket(e.clientX); };
+        this.catchGame.touchmoveHandler = e => { e.preventDefault(); const touch = e.touches[0]; moveBasket(touch.clientX); };
+
         this.catchGame.canvas.addEventListener('mousemove', this.catchGame.mousemoveHandler);
+        this.catchGame.canvas.addEventListener('touchmove', this.catchGame.touchmoveHandler, { passive: false });
 
         this.updateRealtimeScore();
         let timeLeft = 15;
@@ -187,6 +197,7 @@ Object.assign(hamburgerGame, {
         if (this.keydownHandler) document.removeEventListener('keydown', this.keydownHandler);
         if (this.keyupHandler) document.removeEventListener('keyup', this.keyupHandler);
         if (this.catchGame.mousemoveHandler) { this.catchGame.canvas.removeEventListener('mousemove', this.catchGame.mousemoveHandler); }
+        if (this.catchGame.touchmoveHandler) { this.catchGame.canvas.removeEventListener('touchmove', this.catchGame.touchmoveHandler); }
         this.catchGame.keys = {};
         this.elements.restockMinigameScreen.style.display = 'none'; this.elements.restockResultScreen.style.display = 'block'; this.showRestockResult();
     },
@@ -241,6 +252,7 @@ Object.assign(hamburgerGame, {
             if(this.keydownHandler) document.removeEventListener('keydown', this.keydownHandler);
             if(this.keyupHandler) document.removeEventListener('keyup', this.keyupHandler);
             if (this.catchGame.mousemoveHandler) { this.catchGame.canvas.removeEventListener('mousemove', this.catchGame.mousemoveHandler); }
+            if (this.catchGame.touchmoveHandler) { this.catchGame.canvas.removeEventListener('touchmove', this.catchGame.touchmoveHandler); }
             this.catchGame.keys = {};
             this.cancelRestockFlow();
         }
