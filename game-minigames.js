@@ -50,8 +50,67 @@ Object.assign(hamburgerGame, {
         grillStopButton.onclick = stopHandler;
     },
 
-    startPourMinigame(id) { this.state.minigameActive = true; const { minigameDock, pourMinigame, pourLiquid, pourButton } = this.elements; minigameDock.style.display = 'block'; pourMinigame.style.display = 'block'; pourLiquid.style.height = '0%'; pourLiquid.style.backgroundColor = id === 'coke' ? '#3e2723' : id === 'orange-juice' ? '#ff9800' : '#e3f2fd'; let interval; const startPour = () => { this.playSound(this.sounds.pour, true); interval = setInterval(() => { pourLiquid.style.height = `${Math.min(100, parseFloat(pourLiquid.style.height) + 1)}%`; }, 20); }; const stopPour = () => { this.sounds.pour.pause(); clearInterval(interval); const height = parseFloat(pourLiquid.style.height); let quality = 'failed'; if (height >= 75 && height <= 85) quality = 'excellent'; else if (height >= 65 && height <= 95) quality = 'good'; else if (height >= 50) quality = 'normal'; this.addDrink(id, quality); minigameDock.style.display = 'none'; pourMinigame.style.display = 'none'; this.state.minigameActive = false; pourButton.removeEventListener('mousedown', startPour); pourButton.removeEventListener('mouseup', stopPour); pourButton.removeEventListener('mouseleave', stopPour); }; pourButton.addEventListener('mousedown', startPour); pourButton.addEventListener('mouseup', stopPour); pourButton.addEventListener('mouseleave', stopPour); },
+startPourMinigame(id) { 
+        this.state.minigameActive = true; 
+        const { minigameDock, pourMinigame, pourLiquid, pourButton } = this.elements; 
+        minigameDock.style.display = 'block'; 
+        pourMinigame.style.display = 'block'; 
+        pourLiquid.style.height = '0%'; 
+        pourLiquid.style.backgroundColor = id === 'coke' ? '#3e2723' : id === 'orange-juice' ? '#ff9800' : '#e3f2fd'; 
+        
+        let interval;
+        // 二重実行防止のためのフラグ
+        let isPouring = false;
+        
+        const startPour = (e) => { 
+            // タッチイベントの場合はデフォルト動作（スクロールや拡大など）を防ぐ
+            if (e.type === 'touchstart') e.preventDefault();
+            
+            if (isPouring) return;
+            isPouring = true;
 
+            this.playSound(this.sounds.pour, true); 
+            interval = setInterval(() => { 
+                pourLiquid.style.height = `${Math.min(100, parseFloat(pourLiquid.style.height) + 1)}%`; 
+            }, 20); 
+        }; 
+        
+        const stopPour = (e) => { 
+            if (!isPouring) return;
+            isPouring = false;
+
+            this.sounds.pour.pause(); 
+            clearInterval(interval); 
+            const height = parseFloat(pourLiquid.style.height); 
+            let quality = 'failed'; 
+            if (height >= 75 && height <= 85) quality = 'excellent'; 
+            else if (height >= 65 && height <= 95) quality = 'good'; 
+            else if (height >= 50) quality = 'normal'; 
+            
+            this.addDrink(id, quality); 
+            minigameDock.style.display = 'none'; 
+            pourMinigame.style.display = 'none'; 
+            this.state.minigameActive = false; 
+            
+            // PC用イベント解除
+            pourButton.removeEventListener('mousedown', startPour); 
+            pourButton.removeEventListener('mouseup', stopPour); 
+            pourButton.removeEventListener('mouseleave', stopPour);
+            // タッチデバイス用イベント解除
+            pourButton.removeEventListener('touchstart', startPour);
+            pourButton.removeEventListener('touchend', stopPour);
+            pourButton.removeEventListener('touchcancel', stopPour);
+        }; 
+        
+        // PC用イベント登録
+        pourButton.addEventListener('mousedown', startPour); 
+        pourButton.addEventListener('mouseup', stopPour); 
+        pourButton.addEventListener('mouseleave', stopPour);
+        // タッチデバイス用イベント登録 (passive: false は preventDefault() を機能させるために必要)
+        pourButton.addEventListener('touchstart', startPour, { passive: false });
+        pourButton.addEventListener('touchend', stopPour);
+        pourButton.addEventListener('touchcancel', stopPour);
+    },
     startRestockFlow() { if (this.state.minigameActive) return; this.state.minigameActive = true; this.state.restock.selection = []; this.elements.restockGameModal.style.display = 'flex'; this.elements.restockSelectionScreen.style.display = 'block'; this.elements.restockMinigameScreen.style.display = 'none'; this.elements.restockResultScreen.style.display = 'none'; this.populateRestockSelection(); this.updateRestockCost(); },
     
     populateRestockSelection() {
