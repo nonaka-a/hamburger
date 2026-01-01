@@ -16,7 +16,13 @@ Object.assign(hamburgerGame, {
             restockCancelSelectionButton: '#restock-cancel-selection-button',
             restockAbortButton: '#restock-abort-button',
             shopButton: '#shop-button', shopModal: '#shop-modal', shopItemsContainer: '#shop-items-container', closeShopButton: '#close-shop-button', bgmChangeButton: '#bgm-change-button',
-            jukeboxObject: '#jukebox-object', bgmSelectModal: '#bgm-select-modal', closeBgmModal: '#close-bgm-modal', bgmList: '#bgm-list'
+            jukeboxObject: '#jukebox-object', bgmSelectModal: '#bgm-select-modal', closeBgmModal: '#close-bgm-modal', bgmList: '#bgm-list',
+            
+            // --- 追加要素 ---
+            dayDisplay: '#day-display', clockDisplay: '#clock-display',
+            dayStartOverlay: '#day-start-overlay', dayStartText: '#day-start-text',
+            dailyResultModal: '#daily-result-modal', nextDayButton: '#next-day-button',
+            resultRevenue: '#result-revenue', resultExpenses: '#result-expenses', resultProfit: '#result-profit', resultCustomers: '#result-customers', resultScore: '#result-score'
         };
         for (const k in s) { this.elements[k] = document.querySelector(s[k]); }
     },
@@ -34,6 +40,9 @@ Object.assign(hamburgerGame, {
         this.elements.bgmChangeButton.addEventListener('click', () => this.cycleBgm());
         this.elements.jukeboxObject.addEventListener('click', () => this.openBgmSelect());
         this.elements.closeBgmModal.addEventListener('click', () => this.closeBgmSelect());
+        
+        // --- 追加イベント ---
+        this.elements.nextDayButton.addEventListener('click', () => this.nextDay());
         
         this.elements.bgmList.querySelectorAll('.bgm-option').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -136,12 +145,12 @@ Object.assign(hamburgerGame, {
         const container = document.createElement('div'); 
         container.className = 'completed-burger-container'; 
         
-        // --- スコア表示要素の作成 ---
+        // --- スコア表示要素 ---
         const scoreContainer = document.createElement('div');
         scoreContainer.className = 'burger-score-badge';
         scoreContainer.innerHTML = `<div class="score-label">できばえ</div><div class="score-value">${totalScore}${bonusScore !== 0 ? `<span class="score-bonus ${bonusScore > 0 ? 'plus' : 'minus'}">(${bonusScore > 0 ? '+' : ''}${bonusScore})</span>` : ''}</div><div class="score-unit">点</div>`;
         container.appendChild(scoreContainer);
-        // -------------------------
+        // -------------------
 
         const visualsContainer = document.createElement('div'); visualsContainer.className = 'completed-visuals'; const imageContainer = document.createElement('div'); imageContainer.className = 'burger-image-container'; let currentHeight = 0; 
         this.state.currentOrder.burger.forEach((id, index) => { const img = document.createElement('img'); img.src = this.config.IMAGE_PATH + this.data.ingredients[id].image; img.className = 'completed-ingredient-image'; img.style.bottom = `${currentHeight}px`; img.style.zIndex = index; img.style.animationDelay = `${index * 0.15}s`; imageContainer.appendChild(img); currentHeight += this.data.ingredients[id].height; }); visualsContainer.appendChild(imageContainer); 
@@ -181,5 +190,44 @@ Object.assign(hamburgerGame, {
             const index = parseInt(btn.dataset.index);
             btn.classList.toggle('active', index === this.state.bgmIndex);
         });
+    },
+
+    // --- 追加メソッド ---
+    updateTimeDisplay() {
+        if (!this.elements.clockDisplay) return; // エラー回避
+        const hours = Math.floor(this.state.time / 60);
+        const minutes = this.state.time % 60;
+        this.elements.clockDisplay.textContent = `${hours}:${minutes.toString().padStart(2, '0')}`;
+        this.elements.dayDisplay.textContent = `${this.state.day}日目`;
+    },
+
+    showDayStart(callback) {
+        this.elements.dayStartText.textContent = `${this.state.day}日目 スタート`;
+        this.elements.dayStartOverlay.style.display = 'flex';
+        setTimeout(() => {
+            this.elements.dayStartOverlay.style.display = 'none';
+            if (callback) callback();
+        }, 3000);
+    },
+
+    showDailyResult() {
+        const { revenue, expenses, customers, score } = this.state.dailyStats;
+        const profit = revenue - expenses;
+        
+        // 金額に符号をつけるヘルパー関数
+        const fmtMoney = (val) => (val >= 0 ? '+' : '') + val;
+
+        this.elements.resultRevenue.textContent = fmtMoney(revenue);
+        this.elements.resultExpenses.textContent = expenses > 0 ? '-' + expenses : '0'; // 経費はマイナス表記で見やすく
+        
+        this.elements.resultProfit.textContent = fmtMoney(profit);
+        // 黒字なら緑、赤字なら赤
+        this.elements.resultProfit.style.color = profit >= 0 ? 'var(--main-green)' : 'var(--main-red)';
+        
+        this.elements.resultCustomers.textContent = customers;
+        this.elements.resultScore.textContent = score;
+
+        this.elements.dailyResultModal.style.display = 'flex';
     }
+    // ------------------
 });

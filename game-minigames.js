@@ -221,7 +221,13 @@ Object.assign(hamburgerGame, {
     processPaymentAndStartMinigame() {
         this.hideRestockConfirmPopup(); const allItems = { ...this.data.ingredients, ...this.data.drinks };
         let totalCost = 0; this.state.restock.selection.forEach(id => { totalCost += allItems[id].purchasePrice * 5; });
-        this.state.money -= totalCost; this.showMoneyPopup(-totalCost); this.updateUI();
+        
+        this.state.money -= totalCost; 
+        // --- 経費加算 ---
+        this.state.dailyStats.expenses += totalCost;
+        // ---------------
+        
+        this.showMoneyPopup(-totalCost); this.updateUI();
         this.elements.restockSelectionScreen.style.display = 'none'; this.elements.restockMinigameScreen.style.display = 'block'; this.startCatchMinigame();
     },
 

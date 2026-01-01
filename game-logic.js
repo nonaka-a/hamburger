@@ -1,60 +1,203 @@
 Object.assign(hamburgerGame, {
-    startGame() { this.elements.titleScreen.style.display = 'none'; this.elements.gameWrapper.style.display = 'flex'; this.elements.shopButton.style.display = 'flex'; this.sounds.bgm.play().catch(e => { }); this.initializePanels(); this.bindGameEvents(); this.updateUI(); this.newCustomer(); },
+    startGame() { 
+        this.elements.titleScreen.style.display = 'none'; 
+        this.elements.gameWrapper.style.display = 'flex'; 
+        this.sounds.bgm.play().catch(e => {}); 
+        this.initializePanels(); 
+        this.bindGameEvents(); 
+        
+        this.updateUI(); 
+        this.startDay(); 
+    },
 
-    handleItemClick(id, type) { if (!this.state.isAcceptingOrder || this.state.minigameActive) return; const grillableItems = ['patty', 'bacon', 'egg']; if (type === 'ingredient') { if (this.data.ingredients[id].stock <= 0) return; if (grillableItems.includes(id)) { this.startGrillMinigame(id); } else { this.addIngredient(id, 'normal'); } } else if (type === 'drink') { if (this.data.drinks[id].stock <= 0) return; this.startPourMinigame(id); } },
+    startDay() {
+        this.state.time = 600; // 10:00
+        this.state.isShopOpen = false;
+        this.state.dailyStats = { revenue: 0, expenses: 0, customers: 0, score: 0 };
+        this.updateTimeDisplay();
+        
+        this.showDayStart(() => {
+            this.state.isShopOpen = true;
+            this.newCustomer();
+            
+            if (this.state.gameTimer) clearInterval(this.state.gameTimer);
+            this.state.gameTimer = setInterval(() => {
+                if (this.state.minigameActive) return; // ミニゲーム中は止めるが、営業中チェックは外す（閉店処理中でも時間は止めたくない場合）
+                // ただし、閉店後は isShopOpen=false になるが、最後の客対応中は時計を止めたいので、
+                // updateTime内で時間上限チェックをする方式に変更。
+                
+                this.updateTime();
+            }, 300);
+        });
+    },
 
-    newCustomer() { this.setCustomerMessage('いらっしゃいませ！'); this.state.isAcceptingOrder = false; setTimeout(() => { const customerIndex = Math.floor(Math.random() * this.data.customers.length); const customerImageFile = this.data.customers[customerIndex]; this.state.currentCustomer = customerImageFile; this.elements.customerImage.src = this.config.IMAGE_PATH + customerImageFile; this.elements.customerImage.classList.add('visible'); this.generateOrder(); this.updateUI(); this.setCustomerMessage('これください！'); this.state.isAcceptingOrder = true; this.playSound(this.sounds.order); }, 1500); },
+    updateTime() {
+        // 20:00 (1200分) 未満なら進める
+        if (this.state.time < 1200) {
+            this.state.time++;
+            this.updateTimeDisplay();
+        }
+
+        // 20:00になったら終了試行
+        if (this.state.time >= 1200) { 
+            this.tryEndDay();
+        }
+    },
+
+    tryEndDay() {
+        // 閉店時間になったので、新規客ストップフラグを立てる
+        this.state.isShopOpen = false;
+
+        // 接客中（オーダー受付中 または 提供待ち）ならまだ終了しない
+        if (this.state.currentCustomer) {
+            return; 
+        }
+
+        // 接客中でなければ終了処理へ
+        this.endDay();
+    },
+
+    endDay() {
+        this.state.isShopOpen = false;
+        clearInterval(this.state.gameTimer);
+        this.state.isAcceptingOrder = false;
+        this.elements.customerImage.classList.remove('visible');
+        this.setCustomerMessage('本日の営業は終了しました');
+        
+        setTimeout(() => {
+            this.showDailyResult();
+        }, 1500);
+    },
+
+    nextDay() {
+        this.elements.dailyResultModal.style.display = 'none';
+        
+        this.state.day++;
+        this.state.currentCustomer = null;
+        this.state.playerSelection = { burger: [], drink: null };
+        this.state.currentOrder = { burger: [], drink: null };
+        this.updateUI();
+        
+        this.startDay();
+    },
+
+    handleItemClick(id, type) { 
+        // 閉店時間過ぎても接客中なら操作可能にするため !this.state.isShopOpen のチェックは外すか、currentCustomerがいるなら許可する
+        // ここでは「接客中(currentCustomerあり)ならOK」とする
+        if (!this.state.currentCustomer && !this.state.isShopOpen) return; 
+        if (!this.state.isAcceptingOrder || this.state.minigameActive) return; 
+
+        const grillableItems = ['patty', 'bacon', 'egg']; 
+        if (type === 'ingredient') { 
+            if (this.data.ingredients[id].stock <= 0) return; 
+            if (grillableItems.includes(id)) { this.startGrillMinigame(id); } else { this.addIngredient(id, 'normal'); } 
+        } else if (type === 'drink') { 
+            if (this.data.drinks[id].stock <= 0) return; 
+            this.startPourMinigame(id); 
+        } 
+    },
+
+    newCustomer() { 
+        if (!this.state.isShopOpen) return; // 開店中のみ
+        this.setCustomerMessage('いらっしゃいませ！'); 
+        this.state.isAcceptingOrder = false; 
+        setTimeout(() => { 
+            // 待機中に閉店時間になった場合のガード
+            if (!this.state.isShopOpen) {
+                this.tryEndDay();
+                return;
+            }
+
+            const customerIndex = Math.floor(Math.random() * this.data.customers.length); 
+            const customerImageFile = this.data.customers[customerIndex]; 
+            this.state.currentCustomer = customerImageFile; 
+            this.elements.customerImage.src = this.config.IMAGE_PATH + customerImageFile; 
+            this.elements.customerImage.classList.add('visible'); 
+            this.generateOrder(); 
+            this.updateUI(); 
+            this.setCustomerMessage('これください！'); 
+            this.state.isAcceptingOrder = true; 
+            this.playSound(this.sounds.order); 
+        }, 1500); 
+    },
 
     generateOrder() { const { middleIngredients, drinks } = this.data; const n = Math.floor(Math.random() * 4) + 1; const t = []; for (let i = 0; i < n; i++) { t.push(middleIngredients[Math.floor(Math.random() * middleIngredients.length)]); } this.state.currentOrder.burger = ['bottom-bun', ...t, 'top-bun']; this.state.currentOrder.drink = null; if (this.state.currentCustomer === 'customer7.png') { this.state.currentOrder.drink = 'orange-juice'; } else if (this.state.currentCustomer === 'customer6.png') { this.state.currentOrder.drink = 'coke'; } else { if (Math.random() < 0.5) { const availableDrinks = Object.keys(drinks).filter(id => drinks[id].stock > 0); if (availableDrinks.length > 0) { const drinkId = availableDrinks[Math.floor(Math.random() * availableDrinks.length)]; this.state.currentOrder.drink = drinkId; } } } },
 
-    serveOrder() {
-        if (!this.state.isAcceptingOrder || this.state.playerSelection.burger.length === 0) return; this.state.isAcceptingOrder = false; const bC = JSON.stringify(this.state.playerSelection.burger.map(i => i.id).sort()) === JSON.stringify([...this.state.currentOrder.burger].sort()); const dC = (this.state.playerSelection.drink ? this.state.playerSelection.drink.id : null) === this.state.currentOrder.drink; if (bC && dC) {
-            this.playSound(this.sounds.success); let earnings = 0;
-
-            // --- スコア計算ロジック追加 ---
+    serveOrder() { 
+        if (!this.state.isAcceptingOrder || this.state.playerSelection.burger.length === 0) return; 
+        this.state.isAcceptingOrder = false; 
+        const bC = JSON.stringify(this.state.playerSelection.burger.map(i => i.id).sort()) === JSON.stringify([...this.state.currentOrder.burger].sort()); const dC = (this.state.playerSelection.drink ? this.state.playerSelection.drink.id : null) === this.state.currentOrder.drink; 
+        
+        if (bC && dC) { 
+            this.playSound(this.sounds.success); 
+            let earnings = 0; 
             let baseScore = 0;
             let bonusScore = 0;
-            // ---------------------------
 
-            this.state.playerSelection.burger.forEach(item => {
-                const data = this.data.ingredients[item.id]; const multiplier = data.qualityMultipliers ? data.qualityMultipliers[item.quality] : 1; earnings += data.price * multiplier;
-                // --- 食材スコア加算 ---
+            this.state.playerSelection.burger.forEach(item => { 
+                const data = this.data.ingredients[item.id]; 
+                const multiplier = data.qualityMultipliers ? data.qualityMultipliers[item.quality] : 1; 
+                earnings += data.price * multiplier; 
                 baseScore += 10;
                 if (item.quality === 'excellent') bonusScore += 20;
                 else if (item.quality === 'good') bonusScore += 10;
                 else if (item.quality === 'bad') bonusScore -= 10;
-                // -------------------
-            }); if (this.state.playerSelection.drink) {
-                const item = this.state.playerSelection.drink; const data = this.data.drinks[item.id]; const multiplier = data.qualityMultipliers ? data.qualityMultipliers[item.quality] : 1; earnings += data.price * multiplier;
-                // --- ドリンクスコア加算 ---
+            }); 
+            if (this.state.playerSelection.drink) { 
+                const item = this.state.playerSelection.drink; 
+                const data = this.data.drinks[item.id]; 
+                const multiplier = data.qualityMultipliers ? data.qualityMultipliers[item.quality] : 1; 
+                earnings += data.price * multiplier; 
                 baseScore += 10;
                 if (item.quality === 'excellent') bonusScore += 20;
                 else if (item.quality === 'good') bonusScore += 10;
-                // ---------------------
-            } const finalEarnings = Math.round(earnings); this.state.money += finalEarnings; const bN = this.getBurgerName(this.state.currentOrder.burger); this.showMoneyPopup(finalEarnings); this.setCustomerMessage(`「${bN}」おいしい！`);
+            } 
+            const finalEarnings = Math.round(earnings); 
+            this.state.money += finalEarnings; 
 
-            // 引数にスコアを追加
-            const totalScore = baseScore + bonusScore;
-            this.showCompletedBurger(bN, finalEarnings, totalScore, bonusScore);
+            this.state.dailyStats.revenue += finalEarnings;
+            this.state.dailyStats.customers++;
+            this.state.dailyStats.score += (baseScore + bonusScore);
 
-        } else { this.playSound(this.sounds.failure); this.setCustomerMessage('あれ、ちがうみたい…'); setTimeout(() => { this.state.playerSelection.burger = []; this.state.playerSelection.drink = null; this.updateUI(); this.setCustomerMessage('もう一度お願い！'); this.playSound(this.sounds.order); this.state.isAcceptingOrder = true; }, 2000); } this.updateUI();
+            const bN = this.getBurgerName(this.state.currentOrder.burger); 
+            this.showMoneyPopup(finalEarnings); 
+            this.setCustomerMessage(`「${bN}」おいしい！`); 
+            this.showCompletedBurger(bN, finalEarnings, baseScore + bonusScore, bonusScore); 
+        } else { 
+            this.playSound(this.sounds.failure); 
+            this.setCustomerMessage('あれ、ちがうみたい…'); 
+            setTimeout(() => { 
+                // 失敗時、もし閉店時間過ぎていてもリトライさせるか？
+                // ここでは「リトライさせる」とする（接客中なので）
+                // ただし客が帰るロジックを入れるなら別
+                
+                this.state.playerSelection.burger = []; 
+                this.state.playerSelection.drink = null; 
+                this.updateUI(); 
+                this.setCustomerMessage('もう一度お願い！'); 
+                this.playSound(this.sounds.order); 
+                this.state.isAcceptingOrder = true; 
+            }, 2000); 
+        } 
+        this.updateUI(); 
     },
+
     addIngredient(id, quality) { if (!this.state.isAcceptingOrder) return; this.playSound(this.sounds.select); this.data.ingredients[id].stock--; this.state.playerSelection.burger.push({ id, quality }); this.updateUI(); },
 
     addDrink(id, quality) { if (!this.state.isAcceptingOrder) return; if (quality === 'failed') { this.state.playerSelection.drink = null; this.playSound(this.sounds.failure); this.updateUI(); return; } if (this.state.playerSelection.drink) { this.data.drinks[this.state.playerSelection.drink.id].stock++; } this.state.playerSelection.drink = { id, quality }; this.data.drinks[id].stock--; this.playSound(this.sounds.select); this.updateUI(); },
 
     undoLastIngredient() { if (this.state.playerSelection.burger.length === 0) return; this.playSound(this.sounds.select); const removed = this.state.playerSelection.burger.pop(); if (removed && this.data.ingredients[removed.id].stock !== Infinity) { this.data.ingredients[removed.id].stock++; } this.updateUI(); },
 
-    trashOrder(silent = false) {
+    trashOrder(silent = false) { 
         if (this.state.playerSelection.burger.length === 0 && !this.state.playerSelection.drink) return;
         if (!silent) this.playSound(this.sounds.failure);
-
+        
         if (this.state.playerSelection.drink) {
             const drinkId = this.state.playerSelection.drink.id;
             if (this.data.drinks[drinkId].stock < this.state.maxStock) { this.data.drinks[drinkId].stock++; }
             this.state.playerSelection.drink = null;
         }
-
+        
         this.state.playerSelection.burger.forEach(item => {
             if (this.data.ingredients[item.id].stock !== Infinity && this.data.ingredients[item.id].stock < this.state.maxStock) {
                 this.data.ingredients[item.id].stock++;
@@ -75,13 +218,13 @@ Object.assign(hamburgerGame, {
         if (h('patty') && h('cheese') && h('pickles') && h('onion')) return "王道クラシックバーガー";
         if (h('bacon') && h('lettuce') && h('tomato')) return "BLTサンド";
         if (h('avocado') && h('egg')) return "森の恵みと太陽のエッグバーガー";
-
+        
         const vegetables = ['lettuce', 'tomato', 'pickles', 'onion', 'avocado'];
         const uniqueVegetablesInBurger = new Set(middle.filter(ing => vegetables.includes(ing)));
         const isMeatFree = !h('patty') && !h('bacon') && !h('egg');
 
         if (isMeatFree && uniqueVegetablesInBurger.size >= 3) { return "ベジタブルガーデンサンド"; }
-
+        
         if (middle.length === 1) { const ingredientName = this.data.ingredients[middle[0]].name; return `シンプル${ingredientName}バーガー`; }
         if (middle.length === 2 && middle[0] === middle[1]) { const ingredientName = this.data.ingredients[middle[0]].name; return `ダブル${ingredientName}バーガー`; }
         let prefix = uniqueMiddle.size >= 4 ? '満腹' : '';
@@ -98,12 +241,26 @@ Object.assign(hamburgerGame, {
         return `${prefix}${randomAdjective}${randomNoun}`;
     },
 
-    resetForNextCustomer() { this.state.currentOrder = { burger: [], drink: null }; this.state.playerSelection = { burger: [], drink: null }; this.elements.customerImage.classList.remove('visible'); this.state.currentCustomer = null; this.newCustomer(); },
+    resetForNextCustomer() { 
+        this.state.currentOrder = { burger: [], drink: null }; 
+        this.state.playerSelection = { burger: [], drink: null }; 
+        this.elements.customerImage.classList.remove('visible'); 
+        this.state.currentCustomer = null; 
+        
+        // 修正: 閉店状態（isShopOpen=false）なら終了処理へ
+        if (!this.state.isShopOpen) {
+            this.endDay();
+            return;
+        }
+
+        this.newCustomer(); 
+    },
 
     buyItem(item) {
         if (this.state.money < item.price) return;
 
         this.state.money -= item.price;
+        this.state.dailyStats.expenses += item.price;
         this.state.purchasedItems.push(item.id);
         this.showMoneyPopup(-item.price);
         this.updateUI();
@@ -113,8 +270,7 @@ Object.assign(hamburgerGame, {
             this.state.maxStock = item.value;
         } else if (item.type === 'unlock_bgm') {
             this.elements.jukeboxObject.style.display = 'block';
-
-            // 通知ウィンドウの生成（スタイル直接指定版）
+            
             const overlay = document.createElement('div');
             Object.assign(overlay.style, {
                 position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
@@ -136,14 +292,14 @@ Object.assign(hamburgerGame, {
             const title = document.createElement('h3');
             title.textContent = 'お買い上げありがとうございます！';
             Object.assign(title.style, {
-                margin: '0', color: 'var(--main-orange)',
+                margin: '0', color: 'var(--main-orange)', 
                 fontSize: '3em', fontWeight: '800'
             });
 
             const message = document.createElement('p');
             message.innerHTML = 'ジュークボックスが届きました。<br>クリックして曲を変えてみよう！';
             Object.assign(message.style, {
-                fontSize: '2em', margin: '0', lineHeight: '1.6',
+                fontSize: '2em', margin: '0', lineHeight: '1.6', 
                 fontWeight: 'bold', color: 'var(--dark-brown)'
             });
 
@@ -161,18 +317,17 @@ Object.assign(hamburgerGame, {
                 overlay.remove();
             };
 
-            // ボタンのアニメーション効果
-            btn.onmousedown = () => {
-                btn.style.transform = 'translateY(4px)';
-                btn.style.boxShadow = '0 4px 0 var(--dark-brown)';
+            btn.onmousedown = () => { 
+                btn.style.transform = 'translateY(4px)'; 
+                btn.style.boxShadow = '0 4px 0 var(--dark-brown)'; 
             };
-            btn.onmouseup = () => {
-                btn.style.transform = 'translateY(0)';
-                btn.style.boxShadow = '0 8px 0 var(--dark-brown)';
+            btn.onmouseup = () => { 
+                btn.style.transform = 'translateY(0)'; 
+                btn.style.boxShadow = '0 8px 0 var(--dark-brown)'; 
             };
-            btn.onmouseleave = () => {
-                btn.style.transform = 'translateY(0)';
-                btn.style.boxShadow = '0 8px 0 var(--dark-brown)';
+            btn.onmouseleave = () => { 
+                btn.style.transform = 'translateY(0)'; 
+                btn.style.boxShadow = '0 8px 0 var(--dark-brown)'; 
             };
 
             notice.appendChild(title);

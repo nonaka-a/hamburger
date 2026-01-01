@@ -138,21 +138,21 @@ body {
 #shop-button {
     position: absolute;
     top: 3px;
-    left: 65px; /* 設定ボタン(15px+40px)の右側 + 余白10px */
+    left: 65px; /* 設定ボタンの右隣 */
     z-index: 3000;
-    width: 40px; /* 設定ボタンと同じサイズに変更 */
-    height: 40px; /* 設定ボタンと同じサイズに変更 */
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background-color: #fff; /* 背景色を白に変更（設定ボタンと統一） */
+    background-color: #fff;
     border: 3px solid var(--dark-brown);
     cursor: pointer;
-    display: none; /* 初期状態は非表示（タイトルでは見せないため） */
+    display: flex;
     justify-content: center;
     align-items: center;
     box-shadow: 0 4px 0 var(--dark-brown);
     transition: all 0.1s ease;
+    display: flex; /* これがないと消える可能性あり */
 }
-
 #shop-button:active {
     transform: translateY(2px);
     box-shadow: 0 2px 0 var(--dark-brown);
@@ -1034,3 +1034,93 @@ body {
     border: 5px solid var(--dark-brown);
     box-shadow: 0 0 50px rgba(0,0,0,0.5);
 }
+
+/* 時間・日付表示の修正 */
+#time-display-container {
+    position: absolute;
+    top: 8px; 
+    left: 120px;
+    transform: none;
+    
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    font-weight: 800;
+    font-size: 1.5em;
+    color: var(--dark-brown);
+    
+    z-index: 1000; /* 修正箇所 */
+    pointer-events: none;
+}
+
+#day-display {
+    color: var(--main-blue);
+}
+
+#clock-display {
+    font-family: monospace; /* 等幅フォントっぽく */
+    font-size: 1.2em;
+}
+
+/* 日付スタートカットイン */
+#day-start-text {
+    font-size: 5em;
+    font-weight: 800;
+    color: var(--main-yellow);
+    
+    -webkit-text-stroke: 8px var(--dark-brown);
+    paint-order: stroke fill;
+    
+    text-shadow: 5px 5px 0 rgba(0,0,0,0.5);
+    /* animation: pop-in-out 3s ease-in-out forwards;  ← 削除 */
+}
+@keyframes pop-in-out {
+    0% { transform: scale(0); opacity: 0; }
+    20% { transform: scale(1.2); opacity: 1; }
+    80% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+}
+
+/* 日次リザルト */
+.daily-result-content {
+    background-color: #fff5e1;
+    border-radius: 15px;
+    padding: 20px 40px;
+    margin: 20px 0;
+    border: 3px dashed var(--dark-brown);
+}
+
+.result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* 上下中央揃え */
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 10px 0;
+    color: var(--dark-brown);
+}
+
+.result-row span:first-child {
+    flex-grow: 1; /* ラベル部分は左寄せ */
+    text-align: left;
+}
+
+.result-row span:nth-child(2) {
+    /* 数値部分は右寄せ、幅を確保して単位に近づける */
+    text-align: right;
+    min-width: 150px; 
+    margin-right: 10px; /* 単位との間隔 */
+}
+
+.result-row.large {
+    font-size: 2em;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
