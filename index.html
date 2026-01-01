@@ -22,6 +22,7 @@
         <div id="time-display-container">
             <div id="day-display">1日目</div>
             <div id="clock-display">10:00</div>
+            <div id="rank-stars-container"></div>
         </div>
 
         <!-- ショップボタン -->
@@ -61,6 +62,8 @@
                     <button class="bgm-option" data-index="0">たのしい曲</button>
                     <button class="bgm-option" data-index="1">ジャズな曲</button>
                     <button class="bgm-option" data-index="2">おしゃれな曲</button>
+                    <button class="bgm-option" data-index="3">うんちの曲</button>
+                    <button class="bgm-option" data-index="4">まほうの曲</button>
                 </div>
                 <button id="close-bgm-modal">とじる</button>
             </div>
@@ -199,6 +202,24 @@
                     <div class="result-row"><span>合計得点:</span> <span id="result-score">0</span>点</div>
                 </div>
                 <button id="next-day-button" class="action-button-style" style="margin-top: 20px; background-color: var(--main-blue);">次の日へ</button>
+            </div>
+        </div>
+
+        <div id="rank-up-modal" class="modal-overlay" style="z-index: 7000;">
+            <div class="game-panel rank-up-content">
+                <h2>祝！ランクアップ！</h2>
+                
+                <div id="rank-up-message">
+                    お店のひょうかが<br>星<span id="rank-up-star-count">1</span>に、にんていされました！<br>おめでとうございます！
+                </div>
+
+                <!-- ロゴ画像 -->
+                <img src="images/logo.png" alt="ロゴ" class="rank-up-logo">
+
+                <!-- 獲得した星を表示するコンテナ -->
+                <div id="rank-up-stars-display"></div>
+
+                <button id="close-rank-up-button" class="action-button-style">やったー！</button>
             </div>
         </div>
 

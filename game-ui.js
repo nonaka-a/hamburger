@@ -18,11 +18,16 @@ Object.assign(hamburgerGame, {
             shopButton: '#shop-button', shopModal: '#shop-modal', shopItemsContainer: '#shop-items-container', closeShopButton: '#close-shop-button', bgmChangeButton: '#bgm-change-button',
             jukeboxObject: '#jukebox-object', bgmSelectModal: '#bgm-select-modal', closeBgmModal: '#close-bgm-modal', bgmList: '#bgm-list',
             
-            // --- 追加要素 ---
             dayDisplay: '#day-display', clockDisplay: '#clock-display',
             dayStartOverlay: '#day-start-overlay', dayStartText: '#day-start-text',
             dailyResultModal: '#daily-result-modal', nextDayButton: '#next-day-button',
-            resultRevenue: '#result-revenue', resultExpenses: '#result-expenses', resultProfit: '#result-profit', resultCustomers: '#result-customers', resultScore: '#result-score'
+            resultRevenue: '#result-revenue', resultExpenses: '#result-expenses', resultProfit: '#result-profit', resultCustomers: '#result-customers', resultScore: '#result-score',
+            
+            rankStarsContainer: '#rank-stars-container',
+            rankUpModal: '#rank-up-modal', rankUpStarCount: '#rank-up-star-count', closeRankUpButton: '#close-rank-up-button',
+            // --- 追加 ---
+            rankUpStarsDisplay: '#rank-up-stars-display'
+            // -----------
         };
         for (const k in s) { this.elements[k] = document.querySelector(s[k]); }
     },
@@ -41,9 +46,11 @@ Object.assign(hamburgerGame, {
         this.elements.jukeboxObject.addEventListener('click', () => this.openBgmSelect());
         this.elements.closeBgmModal.addEventListener('click', () => this.closeBgmSelect());
         
-        // --- 追加イベント ---
         this.elements.nextDayButton.addEventListener('click', () => this.nextDay());
-        
+        this.elements.closeRankUpButton.addEventListener('click', () => {
+            this.elements.rankUpModal.style.display = 'none';
+        });
+
         this.elements.bgmList.querySelectorAll('.bgm-option').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const index = parseInt(e.target.dataset.index);
@@ -60,6 +67,11 @@ Object.assign(hamburgerGame, {
                 if (this.elements.shopModal.style.display === 'flex') {
                     this.renderShopItems();
                 }
+            }
+            if (e.key === 'o' || e.key === 'O') {
+                this.state.totalRankScore += 500;
+                this.updateRankDisplay();
+                console.log("Debug: +500 Rank Score (Total: " + this.state.totalRankScore + ")");
             }
         });
     },
@@ -123,14 +135,30 @@ Object.assign(hamburgerGame, {
         this.elements.serveButton.disabled = this.state.playerSelection.burger.length === 0;
         this.elements.undoButton.disabled = this.state.playerSelection.burger.length === 0;
         this.elements.trashButton.disabled = !h;
-        this.elements.showRestockButton.disabled = this.state.minigameActive;
+
+        this.elements.showRestockButton.disabled = false; 
+        
         this.elements.orderList.innerHTML = '';
         if (this.state.currentOrder.burger.length > 0) {
             [...this.state.currentOrder.burger].reverse().forEach(id => { const li = document.createElement('li'); const data = this.data.ingredients[id]; const nameHTML = id.includes('bun') ? data.name : `<b>${data.name}</b>`; li.innerHTML = `<img src="${this.config.IMAGE_PATH + data.image}" alt="${data.name}">${nameHTML}`; this.elements.orderList.appendChild(li); });
             if (this.state.currentOrder.drink) { const li = document.createElement('li'); const data = this.data.drinks[this.state.currentOrder.drink]; li.innerHTML = `<img src="${this.config.IMAGE_PATH + data.image}" alt="${data.name}"><b>${data.name}</b>`; this.elements.orderList.appendChild(li); }
         } else { this.elements.orderList.innerHTML = '<li>（ご注文はまだかな？）</li>'; }
         this.elements.burgerStack.innerHTML = '';
-        this.state.playerSelection.burger.forEach(item => { const container = document.createElement('div'); container.className = 'ingredient-image-stack'; const img = document.createElement('img'); img.src = this.config.IMAGE_PATH + this.data.ingredients[item.id].image; container.appendChild(img); if (item.quality !== 'normal') { const effect = document.createElement('div'); effect.className = `quality-effect quality-${item.quality}`; effect.style.animation = 'none'; requestAnimationFrame(() => { effect.style.animation = ''; }); container.appendChild(effect); } this.elements.burgerStack.appendChild(container); });
+        this.state.playerSelection.burger.forEach(item => { const container = document.createElement('div'); container.className = 'ingredient-image-stack'; const img = document.createElement('img'); img.src = this.config.IMAGE_PATH + this.data.ingredients[item.id].image; container.appendChild(img); if (item.quality !== 'normal') { const effect = document.createElement('div'); effect.className = `quality-effect quality-${item.quality}`; 
+        // 修正: アニメーションを確実に発火させるための処理
+                // 一旦DOMに追加してからクラスを適用する方法に変更、または強制リフローを入れる
+                container.appendChild(effect); 
+                
+                // iOS/Android等での動作安定のため、強制リフロー
+                void effect.offsetWidth; 
+                
+                // アニメーション用クラスがCSSでanimationを持っている前提なので、
+                // DOMに追加された時点で再生されるはずですが、
+                // もしCSSで `animation: none` がデフォルトでないならこのままでOK。
+                // 念のためスタイルを再適用
+        effect.style.animation = 'none'; requestAnimationFrame(() => { effect.style.animation = ''; }); container.appendChild(effect); } this.elements.burgerStack.appendChild(container); });
+
+
         if (this.state.playerSelection.drink) { this.elements.drinkDisplay.innerHTML = `<img src="${this.config.IMAGE_PATH + this.data.drinks[this.state.playerSelection.drink.id].image}" alt="${this.data.drinks[this.state.playerSelection.drink.id].name}">`; } else { this.elements.drinkDisplay.innerHTML = '<span>（のみもの）</span>'; }
         this.elements.drinkDisplayContainer.classList.toggle('visible', this.state.playerSelection.drink && this.state.playerSelection.drink.id);
     },
@@ -145,12 +173,10 @@ Object.assign(hamburgerGame, {
         const container = document.createElement('div'); 
         container.className = 'completed-burger-container'; 
         
-        // --- スコア表示要素 ---
         const scoreContainer = document.createElement('div');
         scoreContainer.className = 'burger-score-badge';
         scoreContainer.innerHTML = `<div class="score-label">できばえ</div><div class="score-value">${totalScore}${bonusScore !== 0 ? `<span class="score-bonus ${bonusScore > 0 ? 'plus' : 'minus'}">(${bonusScore > 0 ? '+' : ''}${bonusScore})</span>` : ''}</div><div class="score-unit">点</div>`;
         container.appendChild(scoreContainer);
-        // -------------------
 
         const visualsContainer = document.createElement('div'); visualsContainer.className = 'completed-visuals'; const imageContainer = document.createElement('div'); imageContainer.className = 'burger-image-container'; let currentHeight = 0; 
         this.state.currentOrder.burger.forEach((id, index) => { const img = document.createElement('img'); img.src = this.config.IMAGE_PATH + this.data.ingredients[id].image; img.className = 'completed-ingredient-image'; img.style.bottom = `${currentHeight}px`; img.style.zIndex = index; img.style.animationDelay = `${index * 0.15}s`; imageContainer.appendChild(img); currentHeight += this.data.ingredients[id].height; }); visualsContainer.appendChild(imageContainer); 
@@ -192,9 +218,8 @@ Object.assign(hamburgerGame, {
         });
     },
 
-    // --- 追加メソッド ---
     updateTimeDisplay() {
-        if (!this.elements.clockDisplay) return; // エラー回避
+        if (!this.elements.clockDisplay) return;
         const hours = Math.floor(this.state.time / 60);
         const minutes = this.state.time % 60;
         this.elements.clockDisplay.textContent = `${hours}:${minutes.toString().padStart(2, '0')}`;
@@ -214,20 +239,155 @@ Object.assign(hamburgerGame, {
         const { revenue, expenses, customers, score } = this.state.dailyStats;
         const profit = revenue - expenses;
         
-        // 金額に符号をつけるヘルパー関数
         const fmtMoney = (val) => (val >= 0 ? '+' : '') + val;
 
         this.elements.resultRevenue.textContent = fmtMoney(revenue);
-        this.elements.resultExpenses.textContent = expenses > 0 ? '-' + expenses : '0'; // 経費はマイナス表記で見やすく
+        this.elements.resultExpenses.textContent = expenses > 0 ? '-' + expenses : '0';
         
         this.elements.resultProfit.textContent = fmtMoney(profit);
-        // 黒字なら緑、赤字なら赤
         this.elements.resultProfit.style.color = profit >= 0 ? 'var(--main-green)' : 'var(--main-red)';
         
         this.elements.resultCustomers.textContent = customers;
         this.elements.resultScore.textContent = score;
 
         this.elements.dailyResultModal.style.display = 'flex';
+    },
+
+    initRankDisplay() {
+        const container = this.elements.rankStarsContainer;
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const starPath = "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
+
+        for (let i = 0; i < 5; i++) {
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("width", "30");
+            svg.setAttribute("height", "30");
+            svg.setAttribute("viewBox", "0 0 24 24");
+            svg.style.margin = "0 2px";
+            svg.style.filter = "drop-shadow(1px 1px 1px rgba(0,0,0,0.3))";
+
+            const defs = document.createElementNS(svgNS, "defs");
+            const linearGradient = document.createElementNS(svgNS, "linearGradient");
+            const gradId = `rank-grad-${i}`;
+            linearGradient.setAttribute("id", gradId);
+            linearGradient.setAttribute("x1", "0%");
+            linearGradient.setAttribute("y1", "0%");
+            linearGradient.setAttribute("x2", "100%");
+            linearGradient.setAttribute("y2", "0%");
+
+            const stop1 = document.createElementNS(svgNS, "stop");
+            stop1.setAttribute("offset", "0%");
+            stop1.setAttribute("stop-color", "#ffd700");
+            stop1.setAttribute("id", `rank-stop-${i}`);
+
+            const stop2 = document.createElementNS(svgNS, "stop");
+            stop2.setAttribute("offset", "0%");
+            stop2.setAttribute("stop-color", "transparent");
+            stop2.setAttribute("id", `rank-stop-trans-${i}`);
+
+            linearGradient.appendChild(stop1);
+            linearGradient.appendChild(stop2);
+            defs.appendChild(linearGradient);
+            svg.appendChild(defs);
+
+            const path = document.createElementNS(svgNS, "path");
+            path.setAttribute("d", starPath);
+            path.setAttribute("fill", `url(#${gradId})`);
+            path.setAttribute("stroke", "#6d4c41");
+            path.setAttribute("stroke-width", "2");
+            path.setAttribute("stroke-linejoin", "round");
+            
+            svg.appendChild(path);
+            container.appendChild(svg);
+        }
+    },
+
+    updateRankDisplay() {
+        const score = this.state.totalRankScore;
+        const thresholds = this.rankData.thresholds;
+        
+        let prevThreshold = 0;
+        let newRank = 0;
+        
+        for (let i = 0; i < 5; i++) {
+            const target = thresholds[i];
+            const range = target - prevThreshold;
+            const currentInZone = Math.max(0, score - prevThreshold);
+            
+            let percent = 0;
+            if (score >= target) {
+                percent = 100;
+                newRank = i + 1;
+            } else if (score > prevThreshold) {
+                percent = (currentInZone / range) * 100;
+            } else {
+                percent = 0;
+            }
+            
+            const stopEl = document.getElementById(`rank-stop-${i}`);
+            const stopTransEl = document.getElementById(`rank-stop-trans-${i}`);
+            if (stopEl && stopTransEl) {
+                stopEl.setAttribute("offset", `${percent}%`);
+                stopTransEl.setAttribute("offset", `${percent}%`);
+            }
+            
+            prevThreshold = target;
+        }
+
+        if (newRank > this.state.currentRank) {
+            this.state.currentRank = newRank;
+            this.showRankUpPopup(newRank);
+        }
+    },
+
+    showRankUpPopup(rank) {
+        this.elements.rankUpStarCount.textContent = rank;
+        
+        // 獲得した星の数だけ星アイコンを表示
+        const container = this.elements.rankUpStarsDisplay;
+        container.innerHTML = '';
+        
+        // 星のパスデータ
+        const starPath = "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
+        const svgNS = "http://www.w3.org/2000/svg";
+
+        for (let i = 0; i < rank; i++) {
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("width", "60"); // 大きめの星
+            svg.setAttribute("height", "60");
+            svg.setAttribute("viewBox", "0 0 24 24");
+            
+            // アニメーション用にスタイル設定
+            svg.style.opacity = "0";
+            svg.style.transform = "scale(0)";
+            svg.style.transition = `all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${i * 0.2}s`; // 順番に出現
+
+            const path = document.createElementNS(svgNS, "path");
+            path.setAttribute("d", starPath);
+            path.setAttribute("fill", "#ffd700"); // 塗りつぶしの金
+            path.setAttribute("stroke", "#6d4c41");
+            path.setAttribute("stroke-width", "1.5");
+            path.setAttribute("stroke-linejoin", "round");
+            
+            svg.appendChild(path);
+            container.appendChild(svg);
+
+            // アニメーション発火
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    svg.style.opacity = "1";
+                    svg.style.transform = "scale(1)";
+                });
+            });
+        }
+
+        this.playSound(this.sounds.success);
+        setTimeout(() => {
+            this.playSound(this.sounds.rankUp);
+        }, 800); // 0.8秒後に再生（success音の長さや演出に合わせて調整してください
+        this.elements.rankUpModal.style.display = 'flex';
     }
-    // ------------------
 });

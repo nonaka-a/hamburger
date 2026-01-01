@@ -8,12 +8,11 @@ const hamburgerGame = {
         minigameActive: false, 
         restock: { selection: [], caughtItems: {} }, 
         zoom: 1.0,
-        maxStock: 20, // data.jsの初期冷蔵庫に合わせて20に変更推奨ですが、ロジックで上書きされるので10のままでも可
+        maxStock: 10,
         purchasedItems: [],
         bgmIndex: 0,
-        // --- ここから追加 ---
         day: 1,
-        time: 600, // 10:00 = 60 * 10
+        time: 600, 
         isShopOpen: false,
         gameTimer: null,
         dailyStats: {
@@ -21,8 +20,15 @@ const hamburgerGame = {
             expenses: 0,
             customers: 0,
             score: 0
-        }
-
+        },
+        totalRankScore: 0,
+        // --- 追加: 現在のランク ---
+        currentRank: 0
+        // -----------------------
+    },
+    // ここがランクの閾値データです
+    rankData: {
+        thresholds: [1000, 2500, 4000, 6000, 10000]
     },
     config: { IMAGE_PATH: 'images/', SOUND_PATH: 'sound/', },
     elements: {},
@@ -37,5 +43,10 @@ const hamburgerGame = {
         this.loadSounds(); 
         this.bindGlobalEvents(); 
         this.bindResizeEvent();
+        
+        // game-ui.jsのメソッド呼び出し
+        if (this.initRankDisplay) {
+            this.initRankDisplay();
+        }
     }
 };

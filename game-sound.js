@@ -4,11 +4,14 @@ Object.assign(hamburgerGame, {
             bgm: 'bgm.mp3', 
             bgmJazz: 'bgm-jazz.mp3',
             bgmPop: 'bgm-pop.mp3',
-            select: 'select.mp3', success: 'success.mp3', order: 'order.mp3', failure: 'failure.mp3', grill: 'grill.mp3', pour: 'pour.mp3', catch: 'catch.mp3', minigameSuccess: 'minigame_success.mp3' 
+            bgmPoop: 'bgm-poop.mp3',
+            bgmMagic: 'bgm-magic.mp3',
+            select: 'select.mp3', success: 'success.mp3', order: 'order.mp3', failure: 'failure.mp3', grill: 'grill.mp3', pour: 'pour.mp3', catch: 'catch.mp3', minigameSuccess: 'minigame_success.mp3',
+            rankUp: 'rank-up.mp3'
         }; 
         for (const k in f) { this.sounds[k] = new Audio(this.config.SOUND_PATH + f[k]); } 
         
-        ['bgm', 'bgmJazz', 'bgmPop'].forEach(k => {
+        ['bgm', 'bgmJazz', 'bgmPop', 'bgmPoop', 'bgmMagic'].forEach(k => {
             this.sounds[k].loop = true;
             this.sounds[k].volume = 0.3;
         });
@@ -24,7 +27,7 @@ Object.assign(hamburgerGame, {
     },
 
     cycleBgm() {
-        const bgmList = ['bgm', 'bgmJazz', 'bgmPop'];
+        const bgmList = ['bgm', 'bgmJazz', 'bgmPop', 'bgmPoop', 'bgmMagic'];
         const currentKey = bgmList[this.state.bgmIndex];
         this.sounds[currentKey].pause();
         this.sounds[currentKey].currentTime = 0;
@@ -41,7 +44,7 @@ Object.assign(hamburgerGame, {
     },
 
     selectBgm(index) {
-        const bgmList = ['bgm', 'bgmJazz', 'bgmPop'];
+        const bgmList = ['bgm', 'bgmJazz', 'bgmPop', 'bgmPoop', 'bgmMagic'];
         if (index === this.state.bgmIndex) return;
 
         const currentKey = bgmList[this.state.bgmIndex];
@@ -60,7 +63,7 @@ Object.assign(hamburgerGame, {
     },
 
     toggleSound() { 
-        const bgmList = ['bgm', 'bgmJazz', 'bgmPop'];
+        const bgmList = ['bgm', 'bgmJazz', 'bgmPop', 'bgmPoop', 'bgmMagic'];
         const currentBgm = this.sounds[bgmList[this.state.bgmIndex]];
         const isMuted = currentBgm.muted; 
         

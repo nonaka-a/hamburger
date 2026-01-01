@@ -2,6 +2,11 @@ Object.assign(hamburgerGame, {
     startGame() { 
         this.elements.titleScreen.style.display = 'none'; 
         this.elements.gameWrapper.style.display = 'flex'; 
+        // --- 追加: ゲーム開始時にUIを表示 ---
+        this.elements.shopButton.style.display = 'flex';
+        this.elements.settingsIcon.style.display = 'flex';
+        document.querySelector('#time-display-container').style.display = 'flex';
+        // --------------------------------
         this.sounds.bgm.play().catch(e => {}); 
         this.initializePanels(); 
         this.bindGameEvents(); 
@@ -129,48 +134,117 @@ Object.assign(hamburgerGame, {
         const bC = JSON.stringify(this.state.playerSelection.burger.map(i => i.id).sort()) === JSON.stringify([...this.state.currentOrder.burger].sort()); const dC = (this.state.playerSelection.drink ? this.state.playerSelection.drink.id : null) === this.state.currentOrder.drink; 
         
         if (bC && dC) { 
-            this.playSound(this.sounds.success); 
-            let earnings = 0; 
-            let baseScore = 0;
-            let bonusScore = 0;
+        this.playSound(this.sounds.success); 
+        let earnings = 0; 
+        let baseScore = 0;
+        let bonusScore = 0;
 
-            this.state.playerSelection.burger.forEach(item => { 
-                const data = this.data.ingredients[item.id]; 
-                const multiplier = data.qualityMultipliers ? data.qualityMultipliers[item.quality] : 1; 
-                earnings += data.price * multiplier; 
-                baseScore += 10;
-                if (item.quality === 'excellent') bonusScore += 20;
-                else if (item.quality === 'good') bonusScore += 10;
-                else if (item.quality === 'bad') bonusScore -= 10;
-            }); 
-            if (this.state.playerSelection.drink) { 
-                const item = this.state.playerSelection.drink; 
-                const data = this.data.drinks[item.id]; 
-                const multiplier = data.qualityMultipliers ? data.qualityMultipliers[item.quality] : 1; 
-                earnings += data.price * multiplier; 
-                baseScore += 10;
-                if (item.quality === 'excellent') bonusScore += 20;
-                else if (item.quality === 'good') bonusScore += 10;
-            } 
-            const finalEarnings = Math.round(earnings); 
-            this.state.money += finalEarnings; 
+        // アイテム所持判定
+        const hasPan = this.state.purchasedItems.includes('premium_pan');
+        const hasServer = this.state.purchasedItems.includes('juice_server');
+        const hasKnife = this.state.purchasedItems.includes('vegetable_knife');
+        const hasBunsMachine = this.state.purchasedItems.includes('buns_machine');
+        const hasGlasses = this.state.purchasedItems.includes('connoisseur_glasses');
+        const hasSauce = this.state.purchasedItems.includes('secret_sauce');
+
+        // 定義データ取得（価格等はdata.jsを参照するが、ボーナス値はロジック内で固定またはdata.jsから取得）
+        // ここではロジック内で処理します
+
+        this.state.playerSelection.burger.forEach(item => { 
+            const data = this.data.ingredients[item.id]; 
+            const multiplier = data.qualityMultipliers ? data.qualityMultipliers[item.quality] : 1; 
+            earnings += data.price * multiplier; 
+            
+            // 基本点
+            let itemScore = 10;
+
+            // 品質ボーナス
+            if (item.quality === 'excellent') bonusScore += 20;
+            else if (item.quality === 'good') bonusScore += 10;
+            else if (item.quality === 'bad') bonusScore -= 10;
+
+            // --- アイテム効果 ---
+            
+            // 1. フライパン効果 (焼き対象なら+20)
+            if (hasPan && ['patty', 'bacon', 'egg'].includes(item.id)) {
+                itemScore += 20;
+            }
+
+            // 2. 野菜包丁効果
+            if (hasKnife && ['lettuce', 'tomato', 'pickles', 'onion', 'avocado'].includes(item.id)) {
+                itemScore += 20;
+            }
+
+            // 3. バンズマシーン効果
+            if (hasBunsMachine && ['top-bun', 'bottom-bun'].includes(item.id)) {
+                itemScore += 10;
+            }
+
+            // 4. 目利きのめがね (すべての材料+10)
+            if (hasGlasses) {
+                itemScore += 10;
+            }
+
+            baseScore += itemScore;
+        }); 
+
+        if (this.state.playerSelection.drink) { 
+            const item = this.state.playerSelection.drink; 
+            const data = this.data.drinks[item.id]; 
+            const multiplier = data.qualityMultipliers ? data.qualityMultipliers[item.quality] : 1; 
+            earnings += data.price * multiplier; 
+            
+            let itemScore = 10;
+
+            if (item.quality === 'excellent') bonusScore += 20;
+            else if (item.quality === 'good') bonusScore += 10;
+
+            // --- アイテム効果 ---
+
+            // 1. ジュースサーバー効果
+            if (hasServer) {
+                itemScore += 20;
+            }
+            
+            // 2. 目利きのめがね (ジュースも材料とみなすなら+10)
+            // 「すべての材料」の解釈によりますが、ここでは食材全般として加算します
+            if (hasGlasses) {
+                itemScore += 10;
+            }
+
+            baseScore += itemScore;
+        } 
+
+        // --- 5. 秘伝のソース (常に+50) ---
+        if (hasSauce) {
+            baseScore += 50;
+        }
+        // -----------------------------
+
+        const finalEarnings = Math.round(earnings); 
+        this.state.money += finalEarnings;  
 
             this.state.dailyStats.revenue += finalEarnings;
             this.state.dailyStats.customers++;
-            this.state.dailyStats.score += (baseScore + bonusScore);
+            
+            const earnedScore = baseScore + bonusScore;
+            this.state.dailyStats.score += earnedScore;
+            
+            // --- ランクスコア加算と表示更新 ---
+            this.state.totalRankScore += earnedScore;
+            this.updateRankDisplay();
+            // -----------------------------
 
             const bN = this.getBurgerName(this.state.currentOrder.burger); 
             this.showMoneyPopup(finalEarnings); 
             this.setCustomerMessage(`「${bN}」おいしい！`); 
-            this.showCompletedBurger(bN, finalEarnings, baseScore + bonusScore, bonusScore); 
+            this.showCompletedBurger(bN, finalEarnings, earnedScore, bonusScore); 
         } else { 
+            // ... (失敗時の処理) ...
             this.playSound(this.sounds.failure); 
             this.setCustomerMessage('あれ、ちがうみたい…'); 
             setTimeout(() => { 
-                // 失敗時、もし閉店時間過ぎていてもリトライさせるか？
-                // ここでは「リトライさせる」とする（接客中なので）
-                // ただし客が帰るロジックを入れるなら別
-                
+                if (!this.state.isShopOpen) return;
                 this.state.playerSelection.burger = []; 
                 this.state.playerSelection.drink = null; 
                 this.updateUI(); 
@@ -261,6 +335,8 @@ Object.assign(hamburgerGame, {
 
         this.state.money -= item.price;
         this.state.dailyStats.expenses += item.price;
+        this.state.totalRankScore += 500;
+        this.updateRankDisplay();
         this.state.purchasedItems.push(item.id);
         this.showMoneyPopup(-item.price);
         this.updateUI();

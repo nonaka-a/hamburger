@@ -52,7 +52,7 @@ const gameData = {
             id: 'premium_pan', 
             name: 'こげないフライパン', 
             price: 2000, 
-            description: '焼きやすくなり、焦げにくくなる', 
+            description: '焼きやすくなり、焼き材料の得点+20', // 説明文更新
             image: 'premium-pan.png',
             type: 'upgrade_grill'
         },
@@ -60,10 +60,50 @@ const gameData = {
             id: 'juice_server', 
             name: 'ジュースサーバー', 
             price: 2000, 
-            description: 'のみものの注ぎが上手にできる', 
+            description: '注ぎやすくなり、ジュースの得点+20', // 説明文更新
             image: 'juice-server.png',
             type: 'upgrade_pour'
         },
+        // --- 新商品追加 ---
+        {
+            id: 'vegetable_knife',
+            name: '職人の野菜ほうちょう',
+            price: 1500,
+            description: '野菜がおいしく切れる！野菜の得点+20',
+            image: 'vegetable-knife.png', // 画像ファイルを用意してください
+            type: 'bonus_score',
+            target: ['lettuce', 'tomato', 'pickles', 'onion', 'avocado'],
+            value: 20
+        },
+        {
+            id: 'buns_machine',
+            name: '高級バンズマシーン',
+            price: 2000,
+            description: 'おいしいバンズに大変身。バンズの得点+10',
+            image: 'buns-machine.png', // 画像ファイルを用意してください
+            type: 'bonus_score',
+            target: ['top-bun', 'bottom-bun'],
+            value: 10
+        },
+        {
+            id: 'connoisseur_glasses',
+            name: '目利きのめがね',
+            price: 2500,
+            description: 'しいれ力がアップ！すべての材料の得点+10',
+            image: 'glasses.png', // 画像ファイルを用意してください
+            type: 'bonus_score_all_ingredients', // フラグで管理
+            value: 10
+        },
+        {
+            id: 'secret_sauce',
+            name: '秘伝のソース',
+            price: 3000,
+            description: 'おいいしソースでパワーアップ。常に得点+50',
+            image: 'secret-sauce.png', // 画像ファイルを用意してください
+            type: 'bonus_score_always', // フラグで管理
+            value: 50
+        },
+        // ------------------
         { 
             id: 'jukebox', 
             name: 'ジュークボックス', 

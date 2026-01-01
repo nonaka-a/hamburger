@@ -1124,3 +1124,79 @@ body {
     margin-bottom: 20px;
 }
 
+#rank-stars-container {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+    padding-left: 10px;
+    border-left: 2px dashed #ccc;
+    height: 30px;
+}
+
+/* --- ランクアップ画面のスタイル --- */
+
+/* 白いボード部分 */
+.rank-up-content {
+    width: 900px;
+    text-align: center;
+    border: 10px solid gold;
+    background-color: #fffaf0;
+    
+    /* 中身のレイアウト設定 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px;          /* 内側の余白 */
+    gap: 0px;              /* 各要素（文字や画像）の間の距離を一括設定 */
+}
+
+/* 「祝！ランクアップ！」のタイトル */
+.rank-up-content h2 {
+    color: var(--main-orange);
+    font-size: 3em;
+    margin: 0;              /* 余白はgapで制御するので0に */
+    text-shadow: 2px 2px 0 #fff;
+}
+
+/* メッセージ部分 */
+#rank-up-message {
+    font-size: 1.8em;
+    font-weight: bold;
+    line-height: 1.5;
+    color: var(--dark-brown);
+    margin: 10px 0;         /* 上下の微調整が必要ならここを変更 */
+}
+
+#rank-up-star-count {
+    font-size: 1.5em;
+    color: gold;
+    text-shadow: 2px 2px 0 #000;
+}
+
+/* ロゴ画像 */
+.rank-up-logo {
+    width: 300px;           /* ロゴの大きさ */
+    height: auto;
+    margin: 0;              /* 余白はgapで制御 */
+}
+
+/* 星が並ぶエリア */
+#rank-up-stars-display {
+    display: flex;
+    justify-content: center;
+    gap: 15px;              /* 星と星の間隔 */
+    height: 70px;           /* 星が表示されるエリアの高さ */
+    margin: 10px 0;         /* 上下の微調整 */
+}
+
+/* 「やったー！」ボタン */
+#close-rank-up-button {
+    background-color: var(--main-green);
+    font-size: 1.5em;
+    padding: 15px 50px;
+    margin-top: 10px;       /* ボタンだけ少し離したい場合 */
+}
+
+#shop-button,  #time-display-container {
+    display: none; /* 初期状態は非表示 */
+}

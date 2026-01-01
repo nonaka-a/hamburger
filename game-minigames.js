@@ -356,6 +356,8 @@ Object.assign(hamburgerGame, {
 
     applyRestockResults() {
         const allItems = { ...this.data.ingredients, ...this.data.drinks };
+        let totalCaughtCount = 0; // 追加
+
         for (const id in this.state.restock.caughtItems) {
             const count = this.state.restock.caughtItems[id];
             if (count > 0) {
@@ -364,6 +366,7 @@ Object.assign(hamburgerGame, {
                 const addedAmount = newStock - currentStock;
                 if (addedAmount > 0) {
                     allItems[id].stock = newStock;
+                    totalCaughtCount += addedAmount; // 追加: 実際に増えた分を加算
                     const button = this.elements.ingredientsPanel.querySelector(`[data-id="${id}"]`) || this.elements.drinksPanel.querySelector(`[data-id="${id}"]`);
                     if (button) {
                         const popup = document.createElement('span'); popup.className = 'stock-popup-animation'; popup.textContent = `+${addedAmount}`;
@@ -372,6 +375,14 @@ Object.assign(hamburgerGame, {
                 }
             }
         }
+        
+        // --- ランクスコア加算 ---
+        if (totalCaughtCount > 0) {
+            this.state.totalRankScore += totalCaughtCount; // 1個につき1点
+            this.updateRankDisplay();
+        }
+        // ---------------------
+
         this.updateUI();
     },
 
