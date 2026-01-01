@@ -83,17 +83,13 @@ Object.assign(hamburgerGame, {
                 if (this.elements.shopModal.style.display === 'flex') {
                     this.renderShopItems();
                 }
-                // お金も保存しておくと便利かもしれません
-                this.saveGameData(); 
+                this.saveGameData();
             }
             if (e.key === 'o' || e.key === 'O') {
                 this.state.totalRankScore += 500;
                 this.updateRankDisplay();
                 console.log("Debug: +500 Rank Score (Total: " + this.state.totalRankScore + ")");
-                
-                // --- 追加: セーブを実行 ---
                 this.saveGameData();
-                // ------------------------
             }
         });
     },
@@ -108,7 +104,10 @@ Object.assign(hamburgerGame, {
         this.elements.restockConfirmSelectionButton.addEventListener('click', () => this.showRestockConfirmPopup());
         
         if (this.elements.restockReturnToGameButton) {
-            this.elements.restockReturnToGameButton.addEventListener('click', () => this.closeRestockFlow());
+            this.elements.restockReturnToGameButton.addEventListener('click', () => {
+                this.closeRestockFlow();
+                this.saveGameData();
+            });
         }
         
         this.elements.restockAgainButton.addEventListener('click', () => this.restartRestockFlow());

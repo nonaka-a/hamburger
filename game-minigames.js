@@ -1,40 +1,28 @@
 Object.assign(hamburgerGame, {
-  startGrillMinigame(id) {
+    startGrillMinigame(id) {
         this.state.minigameActive = true; const { minigameDock, grillMinigame, grillCursor, grillStopButton, grillItemImage } = this.elements;
         const itemData = this.data.ingredients[id];
 
-        // --- フライパンの効果を見た目と判定に反映 ---
         const hasPremiumPan = this.state.purchasedItems.includes('premium_pan');
         const excZone = grillMinigame.querySelector('.grill-zone.excellent');
         const goodZone = grillMinigame.querySelector('.grill-zone.good');
-        const badZone = grillMinigame.querySelector('.grill-zone.bad'); // "bad"クラスだが実際はNormal以上の成功範囲(オレンジ色)
+        const badZone = grillMinigame.querySelector('.grill-zone.bad');
 
         if (hasPremiumPan) {
-            // Excellent: ±10%
             excZone.style.width = '20%';
             excZone.style.left = '40%';
-            // Good: ±30%
             goodZone.style.width = '60%';
             goodZone.style.left = '20%';
-            
-            // Normal(成功範囲): 5%〜95% (幅90%) 
-            // これにより焦げる範囲(グレー)が左右5%ずつだけになります
             badZone.style.width = '90%';
             badZone.style.left = '5%';
         } else {
-            // デフォルト設定に戻す
-            // Excellent: ±5%
             excZone.style.width = '10%';
             excZone.style.left = '45%';
-            // Good: ±20%
             goodZone.style.width = '40%';
             goodZone.style.left = '30%';
-            
-            // Normal(成功範囲): 15%〜85% (幅70%)
             badZone.style.width = '70%';
             badZone.style.left = '15%';
         }
-        // ------------------------------------
 
         grillItemImage.src = this.config.IMAGE_PATH + itemData.image;
         const titleElement = grillMinigame.querySelector('h3');
@@ -63,7 +51,6 @@ Object.assign(hamburgerGame, {
 
             const excRange = hasPremiumPan ? 10 : 5;
             const goodRange = hasPremiumPan ? 30 : 20;
-            // Normal判定の範囲もアイテム所持時は広げる (5〜95)
             const normalMin = hasPremiumPan ? 5 : 15;
             const normalMax = hasPremiumPan ? 95 : 85;
 
@@ -106,28 +93,21 @@ Object.assign(hamburgerGame, {
         this.state.minigameActive = true; 
         const { minigameDock, pourMinigame, pourLiquid, pourButton } = this.elements; 
 
-        // --- サーバーの効果を見た目に反映 ---
         const hasServer = this.state.purchasedItems.includes('juice_server');
         const excZone = pourMinigame.querySelector('.pour-zone.excellent');
         const goodZone = pourMinigame.querySelector('.pour-zone.good');
 
         if (hasServer) {
-            // Excellent: 70-90% (範囲20%, 上から100-90=10%の位置)
             excZone.style.height = '20%';
             excZone.style.top = '10%';
-            // Good: 60-98% (範囲38%, 上から100-98=2%の位置)
             goodZone.style.height = '38%';
             goodZone.style.top = '2%';
         } else {
-            // デフォルト
-            // Excellent: 75-85% (範囲10%, 上から15%)
             excZone.style.height = '10%';
             excZone.style.top = '15%';
-            // Good: 65-95% (範囲30%, 上から5%)
             goodZone.style.height = '30%';
             goodZone.style.top = '5%';
         }
-        // ------------------------------------
 
         minigameDock.style.display = 'block'; 
         pourMinigame.style.display = 'block'; 
@@ -223,9 +203,7 @@ Object.assign(hamburgerGame, {
         let totalCost = 0; this.state.restock.selection.forEach(id => { totalCost += allItems[id].purchasePrice * 5; });
         
         this.state.money -= totalCost; 
-        // --- 経費加算 ---
         this.state.dailyStats.expenses += totalCost;
-        // ---------------
         
         this.showMoneyPopup(-totalCost); this.updateUI();
         this.elements.restockSelectionScreen.style.display = 'none'; this.elements.restockMinigameScreen.style.display = 'block'; this.startCatchMinigame();
@@ -356,42 +334,58 @@ Object.assign(hamburgerGame, {
 
     applyRestockResults() {
         const allItems = { ...this.data.ingredients, ...this.data.drinks };
-        let totalCaughtCount = 0; // 追加
+        let totalCaughtCount = 0;
 
         for (const id in this.state.restock.caughtItems) {
             const count = this.state.restock.caughtItems[id];
             if (count > 0) {
                 const currentStock = allItems[id].stock;
+                
+                if (currentStock === Infinity) continue;
+
                 const newStock = Math.min(currentStock + count, this.state.maxStock);
                 const addedAmount = newStock - currentStock;
+                
                 if (addedAmount > 0) {
                     allItems[id].stock = newStock;
-                    totalCaughtCount += addedAmount; // 追加: 実際に増えた分を加算
+                    totalCaughtCount += addedAmount;
+                    
                     const button = this.elements.ingredientsPanel.querySelector(`[data-id="${id}"]`) || this.elements.drinksPanel.querySelector(`[data-id="${id}"]`);
                     if (button) {
-                        const popup = document.createElement('span'); popup.className = 'stock-popup-animation'; popup.textContent = `+${addedAmount}`;
-                        button.style.position = 'relative'; button.appendChild(popup); popup.addEventListener('animationend', () => popup.remove());
+                        const popup = document.createElement('span'); 
+                        popup.className = 'stock-popup-animation'; 
+                        popup.textContent = `+${addedAmount}`;
+                        button.style.position = 'relative'; 
+                        button.appendChild(popup); 
+                        popup.addEventListener('animationend', () => popup.remove());
                     }
                 }
             }
         }
         
-        // --- ランクスコア加算 ---
         if (totalCaughtCount > 0) {
-            this.state.totalRankScore += totalCaughtCount; // 1個につき1点
-            this.updateRankDisplay();
+            this.state.totalRankScore += totalCaughtCount;
+            if (this.updateRankDisplay) {
+                this.updateRankDisplay();
+            }
         }
-        // ---------------------
 
         this.updateUI();
     },
 
-    closeRestockFlow() { this.elements.restockGameModal.style.display = 'none'; this.state.minigameActive = false; },
+    closeRestockFlow() { 
+        this.applyRestockResults(); 
+        
+        if (typeof this.saveGameData === 'function') {
+            this.saveGameData();
+        }
+        
+        this.elements.restockGameModal.style.display = 'none'; 
+        this.state.minigameActive = false; 
+    },
     
     restartRestockFlow() {
-        this.applyRestockResults(); 
-        this.saveGameData();
-        this.state.restock.selection = [];
+        this.applyRestockResults(); this.state.restock.selection = [];
         this.elements.restockSelectionScreen.style.display = 'block'; this.elements.restockMinigameScreen.style.display = 'none';
         this.elements.restockResultScreen.style.display = 'none'; this.populateRestockSelection(); this.updateRestockCost();
     },
