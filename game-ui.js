@@ -30,7 +30,29 @@ Object.assign(hamburgerGame, {
             resetSaveButton: '#reset-save-button',
             resetConfirmModal: '#reset-confirm-modal',
             resetYesButton: '#reset-yes-button',
-            resetNoButton: '#reset-no-button'
+            resetNoButton: '#reset-no-button',
+
+            // コンテスト関連
+            contestButton: '#contest-button',
+            contestGameModal: '#contest-game-modal',
+            contestStartScreen: '#contest-start-screen',
+            contestStartButton: '#contest-start-button',
+            contestCloseButton: '#contest-close-button',
+            contestPlayScreen: '#contest-play-screen',
+            contestCanvas: '#contest-canvas',
+            contestTimer: '#contest-timer',
+            contestHeight: '#contest-height',
+            contestResultScreen: '#contest-result-screen',
+            contestFinalHeight: '#contest-final-height',
+            contestPlayerName: '#contest-player-name',
+            contestSubmitButton: '#contest-submit-button',
+            contestRankingScreen: '#contest-ranking-screen',
+            contestRankingList: '#contest-ranking-list',
+            contestRankingCloseButton: '#contest-ranking-close-button',
+            
+            // コンテスト解放通知
+            contestUnlockModal: '#contest-unlock-modal',
+            contestUnlockCloseButton: '#contest-unlock-close-button'
         };
         for (const k in s) { this.elements[k] = document.querySelector(s[k]); }
     },
@@ -66,6 +88,33 @@ Object.assign(hamburgerGame, {
         this.elements.resetYesButton.addEventListener('click', () => {
             this.resetGameData();
         });
+
+        // コンテスト関連イベント
+        if (this.elements.contestButton) {
+            this.elements.contestButton.addEventListener('click', () => this.openContestMenu());
+        }
+        if (this.elements.contestCloseButton) {
+            this.elements.contestCloseButton.addEventListener('click', () => this.closeContestMenu());
+        }
+        if (this.elements.contestStartButton) {
+            this.elements.contestStartButton.addEventListener('click', () => this.startContestGame());
+        }
+        if (this.elements.contestSubmitButton) {
+            this.elements.contestSubmitButton.addEventListener('click', () => this.submitContestScore());
+        }
+        if (this.elements.contestRankingCloseButton) {
+            this.elements.contestRankingCloseButton.addEventListener('click', () => {
+                this.elements.contestRankingScreen.style.display = 'none';
+                this.closeContestMenu();
+            });
+        }
+        
+        // コンテスト解放通知を閉じる
+        if (this.elements.contestUnlockCloseButton) {
+            this.elements.contestUnlockCloseButton.addEventListener('click', () => {
+                this.elements.contestUnlockModal.style.display = 'none';
+            });
+        }
 
         this.elements.bgmList.querySelectorAll('.bgm-option').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -370,8 +419,28 @@ Object.assign(hamburgerGame, {
         }
 
         if (newRank > this.state.currentRank) {
+            const oldRank = this.state.currentRank; 
             this.state.currentRank = newRank;
+            
             this.showRankUpPopup(newRank);
+
+            // コンテスト解放通知 (ランク3到達時)
+            if (oldRank < 3 && newRank >= 3) {
+                setTimeout(() => {
+                    if (this.elements.contestUnlockModal) {
+                        this.playSound(this.sounds.success);
+                        this.elements.contestUnlockModal.style.display = 'flex';
+                    }
+                }, 2500);
+            }
+        }
+
+        if (this.elements.titleScreen.style.display === 'none') {
+            if (this.state.currentRank >= 3) {
+                if (this.elements.contestButton) {
+                    this.elements.contestButton.style.display = 'flex';
+                }
+            }
         }
     },
 

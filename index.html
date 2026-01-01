@@ -30,6 +30,18 @@
             <img src="images/shop-icon.png" alt="ショップ">
         </button>
 
+        <!-- コンテストボタン -->
+        <button id="contest-button" style="display: none;">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+            </svg>
+        </button>
+
         <div id="settings-panel">
             <h3>設定</h3>
             <div class="settings-row">
@@ -40,14 +52,10 @@
             <button id="fullscreen-button">全画面表示</button>
             <button id="sound-toggle-button" class="sound-on">音: オン</button>
             <button id="bgm-change-button" style="display:none;">BGM変更</button>
-            
-            <!-- 追加: リセットボタン -->
             <button id="reset-save-button" style="background-color: var(--main-orange); color: white; margin-top: 10px;">リセット</button>
-            
             <button id="close-settings-button">とじる</button>
         </div>
 
-<!-- index.html の #fixed-container 末尾付近に追加: リセット確認モーダル -->
         <div id="reset-confirm-modal" class="modal-overlay" style="z-index: 8000;">
             <div class="game-panel" style="width: 500px; text-align: center; border: 5px solid var(--main-red);">
                 <h3 style="color: var(--main-red); font-size: 1.8em;">本当にリセットしますか？</h3>
@@ -62,13 +70,11 @@
             </div>
         </div>
 
-        <!-- ショップ画面（モーダル） -->
+        <!-- ショップ画面 -->
         <div id="shop-modal" class="modal-overlay">
             <div class="game-panel" id="shop-panel">
                 <h2>ショップ</h2>
-                <div id="shop-items-container">
-                    <!-- JSで商品を生成 -->
-                </div>
+                <div id="shop-items-container"></div>
                 <button id="close-shop-button">とじる</button>
             </div>
         </div>
@@ -85,6 +91,68 @@
                     <button class="bgm-option" data-index="4">まほうの曲</button>
                 </div>
                 <button id="close-bgm-modal">とじる</button>
+            </div>
+        </div>
+
+        <!-- コンテスト解放通知モーダル -->
+        <div id="contest-unlock-modal" class="modal-overlay" style="z-index: 7500;">
+            <div class="game-panel" style="width: 700px; text-align: center; border: 10px solid var(--main-orange); padding: 40px;">
+                <h2 style="color: var(--main-yellow); font-size: 3em; margin: 0 0 20px; text-shadow: 3px 3px 0 var(--dark-brown);">祝！コンテスト解放！</h2>
+                <img src="images/contest-icon-large.png" alt="コンテスト" style="width: 250px; height: auto; object-fit: contain; margin-bottom: 20px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.2));">
+                <p style="font-size: 1.8em; font-weight: 800; line-height: 1.4; color: var(--dark-brown); margin: 10px 0;">
+                    トールバーガーコンテストへ<br>参加できるようになりました！
+                </p>
+                <p style="font-size: 1.3em; color: #555; margin-bottom: 30px;">
+                    左上の <span style="display:inline-block; vertical-align:middle; background:white; border:2px solid var(--dark-brown); border-radius:50%; padding:2px;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--main-yellow)" stroke-width="3" style="vertical-align: middle;"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg></span> ボタンから参加してね！
+                </p>
+                <button id="contest-unlock-close-button" class="action-button-style" style="background-color: var(--main-green); font-size: 1.5em; padding: 15px 50px;">わかった！</button>
+            </div>
+        </div>
+
+        <!-- コンテストゲームモーダル -->
+        <div id="contest-game-modal" class="modal-overlay" style="z-index: 2600;">
+            <!-- スタート画面 -->
+            <div id="contest-start-screen" class="game-panel" style="width: 600px; text-align: center; padding: 40px;">
+                <img src="images/contest-icon-large.png" alt="コンテスト" style="width: 480px; height: auto; margin-bottom: 10px;">
+                <h2 style="color: var(--main-orange); font-size: 2.5em; margin: 10px 0;">トールバーガーコンテスト</h2>
+                <div style="font-size: 1.2em; line-height: 1.6; margin: 20px 0; background: #fff; padding: 20px; border-radius: 15px; border: 3px dashed var(--dark-brown);">
+                    <p style="margin: 0 0 10px;">落ちてくる具材を<br><strong>下のバンズ</strong>でキャッチして<br>高く積み上げよう！</p>
+                    <p style="margin: 0;">制限時間は20秒。<br>最後に<strong>上のバンズ</strong>を乗せて完成だ！</p>
+                </div>
+                <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
+                    <button id="contest-start-button" class="action-button-style" style="background-color: var(--main-red); font-size: 1.5em; padding: 15px 40px;">挑戦する</button>
+                    <button id="contest-close-button" class="action-button-style" style="background-color: var(--main-blue); font-size: 1.5em; padding: 15px 40px;">やめる</button>
+                </div>
+            </div>
+
+            <!-- ゲーム画面 -->
+            <div id="contest-play-screen" class="game-panel" style="display: none; padding: 10px; width: 1200px; height: 680px; position: relative;">
+                <div style="position: absolute; top: 30px; left: 30px; font-size: 2em; font-weight: bold; color: white; text-shadow: 2px 2px 0 #000; z-index: 10;">
+                    残り時間: <span id="contest-timer">20</span>
+                </div>
+                <div style="position: absolute; top: 30px; right: 30px; font-size: 2em; font-weight: bold; color: white; text-shadow: 2px 2px 0 #000; z-index: 10;">
+                    高さ: <span id="contest-height">0</span>cm
+                </div>
+                <canvas id="contest-canvas" width="1160" height="640" style="background: #fffbe6; border: 4px solid var(--dark-brown); border-radius: 10px; cursor: none; margin-top: 0;"></canvas>
+            </div>
+
+            <!-- 結果・名前入力画面 -->
+            <div id="contest-result-screen" class="game-panel" style="display: none; width: 500px; text-align: center;">
+                <h2>コンテスト終了！</h2>
+                <div style="margin: 20px 0;">
+                    <p style="font-size: 1.2em;">記録</p>
+                    <p style="font-size: 3em; font-weight: 800; color: var(--main-orange); margin: 0;"><span id="contest-final-height">0</span>cm</p>
+                </div>
+                <p>名前を入れてね</p>
+                <input type="text" id="contest-player-name" maxlength="8" style="font-size: 1.5em; padding: 10px; width: 80%; text-align: center; border-radius: 10px; border: 3px solid var(--dark-brown);" placeholder="名無しバーガー">
+                <button id="contest-submit-button" class="action-button-style" style="background-color: var(--main-green); margin-top: 20px;">ランキング登録</button>
+            </div>
+
+            <!-- ランキング画面 -->
+            <div id="contest-ranking-screen" class="game-panel" style="display: none; width: 500px; text-align: center;">
+                <h2 style="color: var(--main-yellow); -webkit-text-stroke: 1px var(--dark-brown);">歴代ランキング</h2>
+                <ul id="contest-ranking-list" style="list-style: none; padding: 0; text-align: left; margin: 20px 0; max-height: 300px; overflow-y: auto;"></ul>
+                <button id="contest-ranking-close-button" class="action-button-style" style="background-color: var(--main-blue);">とじる</button>
             </div>
         </div>
 
@@ -108,7 +176,6 @@
                 </div>
 
                 <div id="kitchen-display-area">
-                    <!-- お客さん画像より前に配置 -->
                     <img id="jukebox-object" src="images/jukebox.png" alt="ジュークボックス" style="display:none;">
                     <img id="customer-image" src="" alt="お客さん">
                     <img id="foreground-counter" src="images/counter.png" alt="カウンター">
@@ -227,17 +294,11 @@
         <div id="rank-up-modal" class="modal-overlay" style="z-index: 7000;">
             <div class="game-panel rank-up-content">
                 <h2>祝！ランクアップ！</h2>
-                
                 <div id="rank-up-message">
                     お店のひょうかが<br>星<span id="rank-up-star-count">1</span>に、にんていされました！<br>おめでとうございます！
                 </div>
-
-                <!-- ロゴ画像 -->
                 <img src="images/logo.png" alt="ロゴ" class="rank-up-logo">
-
-                <!-- 獲得した星を表示するコンテナ -->
                 <div id="rank-up-stars-display"></div>
-
                 <button id="close-rank-up-button" class="action-button-style">やったー！</button>
             </div>
         </div>
@@ -250,6 +311,7 @@
     <script src="game-ui.js"></script>
     <script src="game-logic.js"></script>
     <script src="game-minigames.js"></script>
+    <script src="game-contest.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

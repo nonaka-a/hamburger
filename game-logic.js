@@ -2,11 +2,20 @@ Object.assign(hamburgerGame, {
     startGame() { 
         this.elements.titleScreen.style.display = 'none'; 
         this.elements.gameWrapper.style.display = 'flex'; 
-        // --- 追加: ゲーム開始時にUIを表示 ---
+        
+        // --- ゲーム開始時にUIを表示 ---
         this.elements.shopButton.style.display = 'flex';
         this.elements.settingsIcon.style.display = 'flex';
         document.querySelector('#time-display-container').style.display = 'flex';
+
+        // コンテストボタンの表示制御（ランク3以上なら表示）
+        if (this.state.currentRank >= 3 && this.elements.contestButton) {
+             this.elements.contestButton.style.display = 'flex';
+        } else if (this.elements.contestButton) {
+             this.elements.contestButton.style.display = 'none';
+        }
         // --------------------------------
+
         this.sounds.bgm.play().catch(e => {}); 
         this.initializePanels(); 
         this.bindGameEvents(); 

@@ -22,7 +22,8 @@ const hamburgerGame = {
             score: 0
         },
         totalRankScore: 0,
-        currentRank: 0
+        currentRank: 0,
+        contestRanking: [] // コンテストランキング用
     },
     rankData: {
         thresholds: [1000, 2500, 4000, 6000, 10000]
@@ -64,7 +65,8 @@ const hamburgerGame = {
             totalRankScore: this.state.totalRankScore,
             currentRank: this.state.currentRank,
             ingredientsStock: {},
-            drinksStock: {}
+            drinksStock: {},
+            contestRanking: this.state.contestRanking || [] // ランキング保存
         };
 
         for (const id in this.data.ingredients) {
@@ -93,21 +95,19 @@ const hamburgerGame = {
                 if (savedData.purchasedItems !== undefined) this.state.purchasedItems = savedData.purchasedItems;
                 if (savedData.totalRankScore !== undefined) this.state.totalRankScore = savedData.totalRankScore;
                 if (savedData.currentRank !== undefined) this.state.currentRank = savedData.currentRank;
+                
+                // ランキングロード
+                this.state.contestRanking = savedData.contestRanking || [];
 
                 if (savedData.ingredientsStock) {
                     for (const id in savedData.ingredientsStock) {
                         if (this.data.ingredients[id]) {
                             let stockVal = savedData.ingredientsStock[id];
-                            
-                            // 修正: InfinityがnullになっていたらInfinityに戻す
-                            // 特にバンズ系は必ずInfinityにする
                             if (id === 'top-bun' || id === 'bottom-bun') {
                                 stockVal = Infinity;
                             } else if (stockVal === null) {
-                                // 万が一他のアイテムでnullになっていたら0にする等の処理
                                 stockVal = 0; 
                             }
-                            
                             this.data.ingredients[id].stock = stockVal;
                         }
                     }
@@ -128,6 +128,8 @@ const hamburgerGame = {
             } catch (e) {
                 console.error("Load Failed", e);
             }
+        } else {
+            this.state.contestRanking = [];
         }
     },
 
