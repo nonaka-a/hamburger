@@ -25,9 +25,12 @@ Object.assign(hamburgerGame, {
             
             rankStarsContainer: '#rank-stars-container',
             rankUpModal: '#rank-up-modal', rankUpStarCount: '#rank-up-star-count', closeRankUpButton: '#close-rank-up-button',
-            // --- 追加 ---
-            rankUpStarsDisplay: '#rank-up-stars-display'
-            // -----------
+            rankUpStarsDisplay: '#rank-up-stars-display',
+
+            resetSaveButton: '#reset-save-button',
+            resetConfirmModal: '#reset-confirm-modal',
+            resetYesButton: '#reset-yes-button',
+            resetNoButton: '#reset-no-button'
         };
         for (const k in s) { this.elements[k] = document.querySelector(s[k]); }
     },
@@ -51,6 +54,19 @@ Object.assign(hamburgerGame, {
             this.elements.rankUpModal.style.display = 'none';
         });
 
+        this.elements.resetSaveButton.addEventListener('click', () => {
+            this.elements.resetConfirmModal.style.display = 'flex';
+            this.elements.settingsPanel.classList.remove('open');
+        });
+
+        this.elements.resetNoButton.addEventListener('click', () => {
+            this.elements.resetConfirmModal.style.display = 'none';
+        });
+
+        this.elements.resetYesButton.addEventListener('click', () => {
+            this.resetGameData();
+        });
+
         this.elements.bgmList.querySelectorAll('.bgm-option').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const index = parseInt(e.target.dataset.index);
@@ -67,11 +83,17 @@ Object.assign(hamburgerGame, {
                 if (this.elements.shopModal.style.display === 'flex') {
                     this.renderShopItems();
                 }
+                // お金も保存しておくと便利かもしれません
+                this.saveGameData(); 
             }
             if (e.key === 'o' || e.key === 'O') {
                 this.state.totalRankScore += 500;
                 this.updateRankDisplay();
                 console.log("Debug: +500 Rank Score (Total: " + this.state.totalRankScore + ")");
+                
+                // --- 追加: セーブを実行 ---
+                this.saveGameData();
+                // ------------------------
             }
         });
     },
@@ -84,7 +106,11 @@ Object.assign(hamburgerGame, {
         this.elements.trashButton.addEventListener('click', () => this.trashOrder());
         this.elements.showRestockButton.addEventListener('click', () => this.startRestockFlow());
         this.elements.restockConfirmSelectionButton.addEventListener('click', () => this.showRestockConfirmPopup());
-        this.elements.restockReturnToGameButton.addEventListener('click', () => this.closeRestockFlow());
+        
+        if (this.elements.restockReturnToGameButton) {
+            this.elements.restockReturnToGameButton.addEventListener('click', () => this.closeRestockFlow());
+        }
+        
         this.elements.restockAgainButton.addEventListener('click', () => this.restartRestockFlow());
         this.elements.restockPayButton.addEventListener('click', () => this.processPaymentAndStartMinigame());
         this.elements.restockCancelButton.addEventListener('click', () => this.hideRestockConfirmPopup());
@@ -135,8 +161,8 @@ Object.assign(hamburgerGame, {
         this.elements.serveButton.disabled = this.state.playerSelection.burger.length === 0;
         this.elements.undoButton.disabled = this.state.playerSelection.burger.length === 0;
         this.elements.trashButton.disabled = !h;
-
-        this.elements.showRestockButton.disabled = false; 
+        
+        this.elements.showRestockButton.disabled = false;
         
         this.elements.orderList.innerHTML = '';
         if (this.state.currentOrder.burger.length > 0) {
@@ -144,21 +170,28 @@ Object.assign(hamburgerGame, {
             if (this.state.currentOrder.drink) { const li = document.createElement('li'); const data = this.data.drinks[this.state.currentOrder.drink]; li.innerHTML = `<img src="${this.config.IMAGE_PATH + data.image}" alt="${data.name}"><b>${data.name}</b>`; this.elements.orderList.appendChild(li); }
         } else { this.elements.orderList.innerHTML = '<li>（ご注文はまだかな？）</li>'; }
         this.elements.burgerStack.innerHTML = '';
-        this.state.playerSelection.burger.forEach(item => { const container = document.createElement('div'); container.className = 'ingredient-image-stack'; const img = document.createElement('img'); img.src = this.config.IMAGE_PATH + this.data.ingredients[item.id].image; container.appendChild(img); if (item.quality !== 'normal') { const effect = document.createElement('div'); effect.className = `quality-effect quality-${item.quality}`; 
-        // 修正: アニメーションを確実に発火させるための処理
-                // 一旦DOMに追加してからクラスを適用する方法に変更、または強制リフローを入れる
-                container.appendChild(effect); 
+        this.state.playerSelection.burger.forEach(item => { 
+            const container = document.createElement('div'); 
+            container.className = 'ingredient-image-stack'; 
+            const img = document.createElement('img'); 
+            img.src = this.config.IMAGE_PATH + this.data.ingredients[item.id].image; 
+            container.appendChild(img); 
+            
+            if (item.quality !== 'normal') { 
+                const effect = document.createElement('div'); 
+                effect.className = `quality-effect quality-${item.quality}`; 
                 
-                // iOS/Android等での動作安定のため、強制リフロー
+                container.appendChild(effect); 
                 void effect.offsetWidth; 
                 
-                // アニメーション用クラスがCSSでanimationを持っている前提なので、
-                // DOMに追加された時点で再生されるはずですが、
-                // もしCSSで `animation: none` がデフォルトでないならこのままでOK。
-                // 念のためスタイルを再適用
-        effect.style.animation = 'none'; requestAnimationFrame(() => { effect.style.animation = ''; }); container.appendChild(effect); } this.elements.burgerStack.appendChild(container); });
-
-
+                effect.style.animation = 'none';
+                requestAnimationFrame(() => {
+                    effect.style.animation = '';
+                });
+            } 
+            
+            this.elements.burgerStack.appendChild(container); 
+        });
         if (this.state.playerSelection.drink) { this.elements.drinkDisplay.innerHTML = `<img src="${this.config.IMAGE_PATH + this.data.drinks[this.state.playerSelection.drink.id].image}" alt="${this.data.drinks[this.state.playerSelection.drink.id].name}">`; } else { this.elements.drinkDisplay.innerHTML = '<span>（のみもの）</span>'; }
         this.elements.drinkDisplayContainer.classList.toggle('visible', this.state.playerSelection.drink && this.state.playerSelection.drink.id);
     },
@@ -346,28 +379,25 @@ Object.assign(hamburgerGame, {
     showRankUpPopup(rank) {
         this.elements.rankUpStarCount.textContent = rank;
         
-        // 獲得した星の数だけ星アイコンを表示
         const container = this.elements.rankUpStarsDisplay;
         container.innerHTML = '';
         
-        // 星のパスデータ
         const starPath = "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
         const svgNS = "http://www.w3.org/2000/svg";
 
         for (let i = 0; i < rank; i++) {
             const svg = document.createElementNS(svgNS, "svg");
-            svg.setAttribute("width", "60"); // 大きめの星
+            svg.setAttribute("width", "60");
             svg.setAttribute("height", "60");
             svg.setAttribute("viewBox", "0 0 24 24");
             
-            // アニメーション用にスタイル設定
             svg.style.opacity = "0";
             svg.style.transform = "scale(0)";
-            svg.style.transition = `all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${i * 0.2}s`; // 順番に出現
+            svg.style.transition = `all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${i * 0.2}s`;
 
             const path = document.createElementNS(svgNS, "path");
             path.setAttribute("d", starPath);
-            path.setAttribute("fill", "#ffd700"); // 塗りつぶしの金
+            path.setAttribute("fill", "#ffd700");
             path.setAttribute("stroke", "#6d4c41");
             path.setAttribute("stroke-width", "1.5");
             path.setAttribute("stroke-linejoin", "round");
@@ -375,7 +405,6 @@ Object.assign(hamburgerGame, {
             svg.appendChild(path);
             container.appendChild(svg);
 
-            // アニメーション発火
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     svg.style.opacity = "1";
@@ -385,9 +414,11 @@ Object.assign(hamburgerGame, {
         }
 
         this.playSound(this.sounds.success);
+        
         setTimeout(() => {
             this.playSound(this.sounds.rankUp);
-        }, 800); // 0.8秒後に再生（success音の長さや演出に合わせて調整してください
+        }, 800);
+
         this.elements.rankUpModal.style.display = 'flex';
     }
 });

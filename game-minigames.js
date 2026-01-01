@@ -386,10 +386,12 @@ Object.assign(hamburgerGame, {
         this.updateUI();
     },
 
-    closeRestockFlow() { this.applyRestockResults(); this.elements.restockGameModal.style.display = 'none'; this.state.minigameActive = false; },
+    closeRestockFlow() { this.elements.restockGameModal.style.display = 'none'; this.state.minigameActive = false; },
     
     restartRestockFlow() {
-        this.applyRestockResults(); this.state.restock.selection = [];
+        this.applyRestockResults(); 
+        this.saveGameData();
+        this.state.restock.selection = [];
         this.elements.restockSelectionScreen.style.display = 'block'; this.elements.restockMinigameScreen.style.display = 'none';
         this.elements.restockResultScreen.style.display = 'none'; this.populateRestockSelection(); this.updateRestockCost();
     },

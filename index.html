@@ -40,7 +40,26 @@
             <button id="fullscreen-button">全画面表示</button>
             <button id="sound-toggle-button" class="sound-on">音: オン</button>
             <button id="bgm-change-button" style="display:none;">BGM変更</button>
+            
+            <!-- 追加: リセットボタン -->
+            <button id="reset-save-button" style="background-color: var(--main-orange); color: white; margin-top: 10px;">リセット</button>
+            
             <button id="close-settings-button">とじる</button>
+        </div>
+
+<!-- index.html の #fixed-container 末尾付近に追加: リセット確認モーダル -->
+        <div id="reset-confirm-modal" class="modal-overlay" style="z-index: 8000;">
+            <div class="game-panel" style="width: 500px; text-align: center; border: 5px solid var(--main-red);">
+                <h3 style="color: var(--main-red); font-size: 1.8em;">本当にリセットしますか？</h3>
+                <p style="margin: 20px 0; font-size: 1.2em;">
+                    これまでの記録がすべて消えます。<br>
+                    この操作は取り消せません。
+                </p>
+                <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
+                    <button id="reset-yes-button" class="action-button-style" style="background-color: var(--main-red);">はい</button>
+                    <button id="reset-no-button" class="action-button-style" style="background-color: var(--main-blue);">いいえ</button>
+                </div>
+            </div>
         </div>
 
         <!-- ショップ画面（モーダル） -->

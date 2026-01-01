@@ -69,6 +69,8 @@ Object.assign(hamburgerGame, {
         this.elements.customerImage.classList.remove('visible');
         this.setCustomerMessage('本日の営業は終了しました');
         
+this.saveGameData();
+
         setTimeout(() => {
             this.showDailyResult();
         }, 1500);
@@ -135,6 +137,7 @@ Object.assign(hamburgerGame, {
         
         if (bC && dC) { 
         this.playSound(this.sounds.success); 
+
         let earnings = 0; 
         let baseScore = 0;
         let bonusScore = 0;
@@ -341,7 +344,7 @@ Object.assign(hamburgerGame, {
         this.showMoneyPopup(-item.price);
         this.updateUI();
         this.playSound(this.sounds.success);
-
+this.saveGameData();
         if (item.type === 'stock') {
             this.state.maxStock = item.value;
         } else if (item.type === 'unlock_bgm') {

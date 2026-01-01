@@ -22,11 +22,8 @@ const hamburgerGame = {
             score: 0
         },
         totalRankScore: 0,
-        // --- 追加: 現在のランク ---
         currentRank: 0
-        // -----------------------
     },
-    // ここがランクの閾値データです
     rankData: {
         thresholds: [1000, 2500, 4000, 6000, 10000]
     },
@@ -44,9 +41,87 @@ const hamburgerGame = {
         this.bindGlobalEvents(); 
         this.bindResizeEvent();
         
-        // game-ui.jsのメソッド呼び出し
+        // 星の生成
         if (this.initRankDisplay) {
             this.initRankDisplay();
         }
+
+        // セーブデータのロード
+        this.loadGameData();
+        
+        // ランク表示更新（ロードしたスコアを反映）
+        if (this.updateRankDisplay) {
+            this.updateRankDisplay();
+        }
+    },
+
+    saveGameData() {
+        const saveData = {
+            money: this.state.money,
+            day: this.state.day,
+            maxStock: this.state.maxStock,
+            purchasedItems: this.state.purchasedItems,
+            totalRankScore: this.state.totalRankScore,
+            currentRank: this.state.currentRank,
+            ingredientsStock: {},
+            drinksStock: {}
+        };
+
+        for (const id in this.data.ingredients) {
+            saveData.ingredientsStock[id] = this.data.ingredients[id].stock;
+        }
+        for (const id in this.data.drinks) {
+            saveData.drinksStock[id] = this.data.drinks[id].stock;
+        }
+
+        try {
+            localStorage.setItem('hamburgerGameSave', JSON.stringify(saveData));
+        } catch (e) {
+            console.error("Save Failed", e);
+        }
+    },
+
+    loadGameData() {
+        const savedJson = localStorage.getItem('hamburgerGameSave');
+        if (savedJson) {
+            try {
+                const savedData = JSON.parse(savedJson);
+                
+                if (savedData.money !== undefined) this.state.money = savedData.money;
+                if (savedData.day !== undefined) this.state.day = savedData.day;
+                if (savedData.maxStock !== undefined) this.state.maxStock = savedData.maxStock;
+                if (savedData.purchasedItems !== undefined) this.state.purchasedItems = savedData.purchasedItems;
+                if (savedData.totalRankScore !== undefined) this.state.totalRankScore = savedData.totalRankScore;
+                if (savedData.currentRank !== undefined) this.state.currentRank = savedData.currentRank;
+
+                if (savedData.ingredientsStock) {
+                    for (const id in savedData.ingredientsStock) {
+                        if (this.data.ingredients[id]) {
+                            this.data.ingredients[id].stock = savedData.ingredientsStock[id];
+                        }
+                    }
+                }
+                if (savedData.drinksStock) {
+                    for (const id in savedData.drinksStock) {
+                        if (this.data.drinks[id]) {
+                            this.data.drinks[id].stock = savedData.drinksStock[id];
+                        }
+                    }
+                }
+                
+                if (this.state.purchasedItems.includes('jukebox')) {
+                    const jukebox = document.querySelector('#jukebox-object');
+                    if (jukebox) jukebox.style.display = 'block';
+                }
+
+            } catch (e) {
+                console.error("Load Failed", e);
+            }
+        }
+    },
+
+    resetGameData() {
+        localStorage.removeItem('hamburgerGameSave');
+        location.reload();
     }
 };
