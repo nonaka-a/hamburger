@@ -97,7 +97,18 @@ const hamburgerGame = {
                 if (savedData.ingredientsStock) {
                     for (const id in savedData.ingredientsStock) {
                         if (this.data.ingredients[id]) {
-                            this.data.ingredients[id].stock = savedData.ingredientsStock[id];
+                            let stockVal = savedData.ingredientsStock[id];
+                            
+                            // 修正: InfinityがnullになっていたらInfinityに戻す
+                            // 特にバンズ系は必ずInfinityにする
+                            if (id === 'top-bun' || id === 'bottom-bun') {
+                                stockVal = Infinity;
+                            } else if (stockVal === null) {
+                                // 万が一他のアイテムでnullになっていたら0にする等の処理
+                                stockVal = 0; 
+                            }
+                            
+                            this.data.ingredients[id].stock = stockVal;
                         }
                     }
                 }
