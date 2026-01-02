@@ -303,6 +303,30 @@
             </div>
         </div>
 
+        <!-- ランク情報確認モーダル -->
+        <div id="rank-info-modal" class="modal-overlay" style="z-index: 6500;">
+            <div class="game-panel rank-up-content">
+                <h2 style="font-size: 2.5em; color: var(--dark-brown);">現在のお店ランク</h2>
+                
+                <!-- ロゴ画像 -->
+                <img src="images/logo.png" alt="ロゴ" class="rank-up-logo" style="width: 200px; margin: 10px 0;">
+
+                <!-- 現在の星 -->
+                <div id="rank-info-stars" style="display: flex; justify-content: center; gap: 10px; margin: 20px 0;">
+                    <!-- JSで生成 -->
+                </div>
+
+                <div style="font-size: 1.5em; font-weight: bold; margin: 20px 0; color: var(--dark-brown);">
+                    <p style="margin: 5px;">次のランクまで</p>
+                    <p style="font-size: 1.8em; color: var(--main-orange);">
+                        <span id="rank-current-score">0</span> / <span id="rank-next-target">0</span>
+                    </p>
+                </div>
+
+                <button id="close-rank-info-button" class="action-button-style" style="background-color: var(--main-blue);">閉じる</button>
+            </div>
+        </div>
+
     </div>
 
     <script src="data.js"></script>

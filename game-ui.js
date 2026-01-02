@@ -27,6 +27,13 @@ Object.assign(hamburgerGame, {
             rankUpModal: '#rank-up-modal', rankUpStarCount: '#rank-up-star-count', closeRankUpButton: '#close-rank-up-button',
             rankUpStarsDisplay: '#rank-up-stars-display',
 
+            // ランク情報確認用
+            rankInfoModal: '#rank-info-modal',
+            rankInfoStars: '#rank-info-stars',
+            rankCurrentScore: '#rank-current-score',
+            rankNextTarget: '#rank-next-target',
+            closeRankInfoButton: '#close-rank-info-button',
+
             resetSaveButton: '#reset-save-button',
             resetConfirmModal: '#reset-confirm-modal',
             resetYesButton: '#reset-yes-button',
@@ -74,6 +81,12 @@ Object.assign(hamburgerGame, {
         this.elements.nextDayButton.addEventListener('click', () => this.nextDay());
         this.elements.closeRankUpButton.addEventListener('click', () => {
             this.elements.rankUpModal.style.display = 'none';
+        });
+
+        // ランク情報確認
+        this.elements.rankStarsContainer.addEventListener('click', () => this.showRankInfo());
+        this.elements.closeRankInfoButton.addEventListener('click', () => {
+            this.elements.rankInfoModal.style.display = 'none';
         });
 
         this.elements.resetSaveButton.addEventListener('click', () => {
@@ -488,5 +501,62 @@ Object.assign(hamburgerGame, {
         }, 800);
 
         this.elements.rankUpModal.style.display = 'flex';
+    },
+
+    // 追加: ランク情報表示
+    showRankInfo() {
+        const modal = this.elements.rankInfoModal;
+        const starContainer = this.elements.rankInfoStars;
+        const currentScoreEl = this.elements.rankCurrentScore;
+        const nextTargetEl = this.elements.rankNextTarget;
+
+        // 星の表示
+        starContainer.innerHTML = '';
+        const starPath = "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
+        const svgNS = "http://www.w3.org/2000/svg";
+
+        // 現在のランク分の星を表示（最大5）
+        const displayRank = this.state.currentRank || 0;
+        for (let i = 0; i < 5; i++) {
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("width", "40");
+            svg.setAttribute("height", "40");
+            svg.setAttribute("viewBox", "0 0 24 24");
+            
+            const path = document.createElementNS(svgNS, "path");
+            path.setAttribute("d", starPath);
+            path.setAttribute("stroke", "#6d4c41");
+            path.setAttribute("stroke-width", "2");
+            path.setAttribute("stroke-linejoin", "round");
+
+            if (i < displayRank) {
+                path.setAttribute("fill", "#ffd700"); // 獲得済み
+            } else {
+                path.setAttribute("fill", "#eee"); // 未獲得
+            }
+            
+            svg.appendChild(path);
+            starContainer.appendChild(svg);
+        }
+
+        // スコア情報の表示
+        const currentScore = this.state.totalRankScore;
+        currentScoreEl.textContent = currentScore;
+
+        // 次のランクの目標値を探す
+        // currentRankは 0～5 (5ならMAX)
+        // thresholds: [1000, 2500, 4000, 6000, 10000]
+        // rank 0 -> target 1000 (thresholds[0])
+        // rank 1 -> target 2500 (thresholds[1])
+        // ...
+        // rank 5 -> MAX
+        
+        let nextTarget = "MAX";
+        if (displayRank < 5) {
+            nextTarget = this.rankData.thresholds[displayRank];
+        }
+        nextTargetEl.textContent = nextTarget;
+
+        modal.style.display = 'flex';
     }
 });
