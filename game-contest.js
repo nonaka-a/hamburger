@@ -12,9 +12,11 @@ Object.assign(hamburgerGame, {
         ctx: null,
         canvas: null,
         playerX: 0,
+        playerVX: 0,
+        lastPlayerX: 0,
         playerWidth: 80,
         items: [],
-        stack: [],
+        stack: [], // {..., swayOffsetX, swayVX, squashOffsetY, squashVY}
         scoreHeight: 0,
         keys: {},
         imageCache: {},
@@ -73,9 +75,11 @@ Object.assign(hamburgerGame, {
         this.contest.isCountingDown = true;
         this.contest.countdown = 3;
         
-        await this.preloadContestImages();
-
         this.contest.playerX = this.contest.canvas.width / 2 - this.contest.playerWidth / 2;
+        this.contest.lastPlayerX = this.contest.playerX;
+        this.contest.playerVX = 0;
+
+        await this.preloadContestImages();
         this.bindContestControls();
 
         this.elements.contestTimer.textContent = this.contest.timer;
@@ -192,7 +196,14 @@ Object.assign(hamburgerGame, {
             const rect = this.contest.canvas.getBoundingClientRect();
             const scaleX = this.contest.canvas.width / rect.width;
             let mouseX = (clientX - rect.left) * scaleX;
-            this.contest.playerX = mouseX - this.contest.playerWidth / 2;
+            
+            const newX = mouseX - this.contest.playerWidth / 2;
+            
+            let diff = newX - this.contest.playerX;
+            
+            this.applySwayForce(diff);
+
+            this.contest.playerX = newX;
             
             if (this.contest.playerX < 0) this.contest.playerX = 0;
             if (this.contest.playerX > this.contest.canvas.width - this.contest.playerWidth) {
@@ -205,6 +216,34 @@ Object.assign(hamburgerGame, {
 
         this.contest.canvas.addEventListener('mousemove', this.contest.mousemoveHandler);
         this.contest.canvas.addEventListener('touchmove', this.contest.touchmoveHandler, { passive: false });
+    },
+
+    // 揺れの計算ロジック修正
+    applySwayForce(velocity) {
+        // 現在の高さに基づいた全体の揺れやすさ (200cmで最大)
+        const currentTotalHeight = this.contest.scoreHeight || 0;
+        const baseSensitivity = Math.min(1.0, 0.2 + (currentTotalHeight / 200) * 0.8);
+
+        this.contest.stack.forEach((item, index) => {
+            if (typeof item.swayVX === 'undefined') item.swayVX = 0;
+            
+            // 個別の高さ係数 (上層ほど大きく揺れる)
+            // baseSensitivity と掛け合わせることで、低いタワーの時は全体的に揺れず、
+            // 高くなると上層が激しく揺れるようになる
+            const layerFactor = (index + 1) * 0.25; 
+            
+            const force = -velocity * baseSensitivity * layerFactor;
+            
+            item.swayVX += force * 0.2;
+        });
+    },
+
+    applySquashForce() {
+        this.contest.stack.forEach((item, index) => {
+            if (typeof item.squashVY === 'undefined') item.squashVY = 0;
+            const impact = 3 + (index * 0.2); 
+            item.squashVY += impact; 
+        });
     },
 
     unbindContestControls() {
@@ -226,6 +265,62 @@ Object.assign(hamburgerGame, {
     },
 
     updateContestState() {
+        this.contest.lastPlayerX = this.contest.playerX;
+
+        const speed = 12; 
+        let moveDiff = 0;
+
+        if (!this.contest.isCollapsing && !this.contest.isMeasuring && !this.contest.isCountingDown) {
+            if (this.contest.keys['ArrowLeft']) {
+                this.contest.playerX -= speed;
+                moveDiff = -speed;
+            }
+            if (this.contest.keys['ArrowRight']) {
+                this.contest.playerX += speed;
+                moveDiff = speed;
+            }
+            
+            if (this.contest.playerX < 0) this.contest.playerX = 0;
+            if (this.contest.playerX > this.contest.canvas.width - this.contest.playerWidth) {
+                this.contest.playerX = this.contest.canvas.width - this.contest.playerWidth;
+            }
+            
+            if (moveDiff !== 0) {
+                this.applySwayForce(moveDiff);
+            }
+        }
+
+        const currentVX = this.contest.playerX - this.contest.lastPlayerX;
+        this.contest.playerVX += (currentVX - this.contest.playerVX) * 0.2;
+
+        // --- 物理演算 (たわみ + 沈み込み) ---
+        this.contest.stack.forEach((item) => {
+            if (typeof item.swayOffsetX === 'undefined') {
+                item.swayOffsetX = 0;
+                item.swayVX = 0;
+                item.squashOffsetY = 0;
+                item.squashVY = 0;
+            }
+
+            // X軸 (たわみ)
+            const springX = -item.swayOffsetX * 0.05; 
+            item.swayVX += springX;
+            item.swayVX *= 0.90; 
+            item.swayOffsetX += item.swayVX;
+            
+            // Y軸 (沈み込み)
+            const springY = -item.squashOffsetY * 0.2; 
+            item.squashVY += springY;
+            item.squashVY *= 0.80; 
+            item.squashOffsetY += item.squashVY;
+
+            const limitX = 150;
+            if (item.swayOffsetX > limitX) item.swayOffsetX = limitX;
+            if (item.swayOffsetX < -limitX) item.swayOffsetX = -limitX;
+        });
+
+        // -----------------------------
+
         if (this.contest.isCountingDown) return;
 
         const targetZoom = Math.max(0.5, 1.0 - (this.contest.scoreHeight / 2000));
@@ -249,14 +344,6 @@ Object.assign(hamburgerGame, {
             return;
         }
 
-        const speed = 8;
-        if (this.contest.keys['ArrowLeft']) this.contest.playerX -= speed;
-        if (this.contest.keys['ArrowRight']) this.contest.playerX += speed;
-        if (this.contest.playerX < 0) this.contest.playerX = 0;
-        if (this.contest.playerX > this.contest.canvas.width - this.contest.playerWidth) {
-            this.contest.playerX = this.contest.canvas.width - this.contest.playerWidth;
-        }
-
         let currentStackHeight = 40; 
         this.contest.stack.forEach(item => currentStackHeight += item.height * 0.85);
         const catchY = this.contest.canvas.height - 50 - currentStackHeight;
@@ -266,13 +353,15 @@ Object.assign(hamburgerGame, {
             item.y += item.speed;
 
             if (item.y + item.height > catchY && item.y < catchY + 30) {
-                let baseX, baseWidth;
+                let baseX, baseWidth, sway = 0;
+                
                 if (this.contest.stack.length === 0) {
                     baseX = this.contest.playerX;
                     baseWidth = this.contest.playerWidth;
                 } else {
                     const topItem = this.contest.stack[this.contest.stack.length - 1];
-                    baseX = this.contest.playerX + topItem.offsetX;
+                    sway = topItem.swayOffsetX || 0;
+                    baseX = this.contest.playerX + topItem.offsetX + sway;
                     baseWidth = topItem.width;
                 }
 
@@ -295,9 +384,16 @@ Object.assign(hamburgerGame, {
                                 return;
                             } else {
                                 this.playSound(this.sounds.catch);
+                                
+                                this.applySquashForce();
+
                                 this.contest.stack.push({
                                     ...item,
-                                    offsetX: item.x - this.contest.playerX
+                                    offsetX: (item.x - this.contest.playerX),
+                                    swayOffsetX: sway,
+                                    swayVX: (this.contest.stack.length > 0 ? this.contest.stack[this.contest.stack.length-1].swayVX : 0),
+                                    squashOffsetY: 0,
+                                    squashVY: 0
                                 });
                                 this.contest.scoreHeight += Math.round(item.height * 0.5);
                                 this.elements.contestHeight.textContent = this.contest.scoreHeight;
@@ -331,8 +427,10 @@ Object.assign(hamburgerGame, {
         triggerItem.vr = (fallDirection ? 1 : -1) * 0.2;
 
         this.contest.stack.forEach((item, index) => {
-            item.currentAbsX = this.contest.playerX + item.offsetX;
-            item.currentAbsY = this.contest.canvas.height - 90 - this.getStackYOffset(item);
+            const sway = item.swayOffsetX || 0;
+            const squash = item.squashOffsetY || 0;
+            item.currentAbsX = this.contest.playerX + item.offsetX + sway;
+            item.currentAbsY = this.contest.canvas.height - 90 - this.getStackYOffset(item) + squash;
 
             const force = (index + 1) / this.contest.stack.length;
             const dir = fallDirection ? 1 : -1;
@@ -420,8 +518,20 @@ Object.assign(hamburgerGame, {
             let stackY = cvs.height - 90;
             this.contest.stack.forEach(item => {
                 stackY -= (item.height * 0.85);
-                const drawX = this.contest.playerX + item.offsetX;
-                ctx.drawImage(item.image, drawX, stackY, item.width, item.height);
+                
+                const sway = item.swayOffsetX || 0;
+                const squash = item.squashOffsetY || 0;
+                
+                const drawX = this.contest.playerX + item.offsetX + sway;
+                const drawY = stackY + squash;
+                
+                const tilt = sway * 0.005; 
+                
+                ctx.save();
+                ctx.translate(drawX + item.width/2, drawY + item.height/2);
+                ctx.rotate(tilt);
+                ctx.drawImage(item.image, -item.width/2, -item.height/2, item.width, item.height);
+                ctx.restore();
             });
 
             this.contest.items.forEach(item => {
@@ -431,11 +541,16 @@ Object.assign(hamburgerGame, {
             if (this.contest.isMeasuring) {
                 const progress = this.contest.measureProgress;
                 const bottomY = cvs.height - 70;
+                
+                const topItem = this.contest.stack[this.contest.stack.length - 1];
                 let currentY = cvs.height - 90;
                 this.contest.stack.forEach(item => { currentY -= (item.height * 0.85); });
-                const topY = currentY;
+                
+                const sway = topItem.swayOffsetX || 0;
+                const topX = this.contest.playerX + topItem.offsetX + sway;
+                const topY = currentY + (topItem.squashOffsetY || 0);
 
-                const startX = this.contest.playerX - 25; 
+                const startX = topX - 25; 
                 const targetHeight = bottomY - topY; 
                 
                 const currentDrawHeight = targetHeight * progress;
