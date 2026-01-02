@@ -24,42 +24,44 @@ const gameData = {
         'patty', 'cheese', 'lettuce', 'tomato', 'bacon', 'egg', 'pickles', 'onion', 'avocado'
     ],
     drinks: {
-        'coke': { name: 'コーラ', price: 150, purchasePrice: 50, image: 'coke.png', stock: 5, qualityNames: { excellent: '神業コーラ', good: 'なみなみコーラ', normal: 'ふつうのコーラ' }, qualityMultipliers: { excellent: 1.5, good: 1.2, normal: 1 } },
-        'orange-juice': { name: 'オレンジジュース', price: 150, purchasePrice: 50, image: 'orange-juice.png', stock: 5, qualityNames: { excellent: '神業オレンジ', good: 'なみなみオレンジ', normal: 'ふつうのオレンジ' }, qualityMultipliers: { excellent: 1.5, good: 1.2, normal: 1 } },
-        'calpis': { name: 'カルピス', price: 150, purchasePrice: 50, image: 'calpis.png', stock: 5, qualityNames: { excellent: '神業カルピス', good: 'なみなみカルピス', normal: 'ふつうのカルピス' }, qualityMultipliers: { excellent: 1.5, good: 1.2, normal: 1 } }
+        'coke': { name: 'コーラ', price: 150, purchasePrice: 50, image: 'coke.png', stock: 5, qualityNames: { excellent: '神業コーラ', good: 'なみなみコーラ', normal: 'ふつうのコーラ' }, qualityMultipliers: { excellent: 1.5, good: 1.2, normal: 1 }, minigame: 'pour' },
+        'orange-juice': { name: 'オレンジジュース', price: 150, purchasePrice: 50, image: 'orange-juice.png', stock: 5, qualityNames: { excellent: '神業オレンジ', good: 'なみなみオレンジ', normal: 'ふつうのオレンジ' }, qualityMultipliers: { excellent: 1.5, good: 1.2, normal: 1 }, minigame: 'pour' },
+        'calpis': { name: 'カルピス', price: 150, purchasePrice: 50, image: 'calpis.png', stock: 5, qualityNames: { excellent: '神業カルピス', good: 'なみなみカルピス', normal: 'ふつうのカルピス' }, qualityMultipliers: { excellent: 1.5, good: 1.2, normal: 1 }, minigame: 'pour' },
+        'potato': { name: 'ポテト', price: 200, purchasePrice: 60, image: 'potato.png', stock: 5, reqRank: 1, minigame: 'none' },
+        'soft-cream': { name: 'ソフトクリーム', price: 250, purchasePrice: 80, image: 'soft-cream.png', stock: 5, reqRank: 2, minigame: 'none' }
     },
     shopItems: [
-        { 
-            id: 'fridge_1', 
-            name: 'ふつうの冷蔵庫', 
-            price: 2500, 
-            description: '在庫を20個までストック', 
+        {
+            id: 'fridge_1',
+            name: 'ふつうの冷蔵庫',
+            price: 2500,
+            description: '在庫を20個までストック',
             image: 'fridge-level1.png',
             type: 'stock',
             value: 20
         },
-        { 
-            id: 'fridge_2', 
-            name: '大きな冷蔵庫', 
-            price: 3000, 
-            description: '在庫を30個までストック', 
+        {
+            id: 'fridge_2',
+            name: '大きな冷蔵庫',
+            price: 3000,
+            description: '在庫を30個までストック',
             image: 'fridge-level2.png',
             type: 'stock',
             value: 30,
             required: 'fridge_1'
         },
-        { 
-            id: 'premium_pan', 
-            name: 'こげないフライパン', 
-            price: 2000, 
+        {
+            id: 'premium_pan',
+            name: 'こげないフライパン',
+            price: 2000,
             description: '焼きやすくなり、焼き材料の得点+20', // 説明文更新
             image: 'premium-pan.png',
             type: 'upgrade_grill'
         },
-        { 
-            id: 'juice_server', 
-            name: 'ジュースサーバー', 
-            price: 2000, 
+        {
+            id: 'juice_server',
+            name: 'ジュースサーバー',
+            price: 2000,
             description: '注ぎやすくなり、ジュースの得点+20', // 説明文更新
             image: 'juice-server.png',
             type: 'upgrade_pour'
@@ -104,11 +106,11 @@ const gameData = {
             value: 50
         },
         // ------------------
-        { 
-            id: 'jukebox', 
-            name: 'ジュークボックス', 
-            price: 2500, 
-            description: 'お店の音楽を変更できる', 
+        {
+            id: 'jukebox',
+            name: 'ジュークボックス',
+            price: 2500,
+            description: 'お店の音楽を変更できる',
             image: 'jukebox.png',
             type: 'unlock_bgm'
         }

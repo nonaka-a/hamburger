@@ -1070,17 +1070,17 @@ body {
 }
 
 .quality-excellent {
-    background-image: url('../images/sparkle.png');
+    background-image: url('images/sparkle.png');
     animation: sparkle-anim 1.5s infinite ease-in-out;
 }
 
 .quality-good {
-    background-image: url('../images/sparkle.png');
+    background-image: url('images/sparkle.png');
     animation: sparkle-good-anim 2s infinite ease-in-out;
 }
 
 .quality-bad {
-    background-image: url('../images/smoke.png');
+    background-image: url('images/smoke.png');
     animation: fade-out 1s forwards;
 }
 

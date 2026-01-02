@@ -1,7 +1,7 @@
 Object.assign(hamburgerGame, {
     cacheElements() {
         const s = {
-            titleScreen: '#title-screen', startButton: '#start-button', gameWrapper: '#game-wrapper', statusBar: '#status-bar', money: '#money', 
+            titleScreen: '#title-screen', startButton: '#start-button', gameWrapper: '#game-wrapper', statusBar: '#status-bar', money: '#money',
             settingsIcon: '#settings-icon', settingsPanel: '#settings-panel', zoomInButton: '#zoom-in-button', zoomOutButton: '#zoom-out-button', fullscreenButton: '#fullscreen-button', soundToggleButton: '#sound-toggle-button', closeSettingsButton: '#close-settings-button', fixedContainer: '#fixed-container',
             customerImage: '#customer-image', customerMessage: '#customer-message', orderList: '#order-list', burgerStack: '#burger-stack', ingredientsPanel: '#ingredients-panel', drinksPanel: '#drinks-panel', drinkDisplay: '#drink-display', drinkDisplayContainer: '#drink-display-container',
             serveButton: '#serve-button', undoButton: '#undo-button', trashButton: '#trash-button',
@@ -17,12 +17,12 @@ Object.assign(hamburgerGame, {
             restockAbortButton: '#restock-abort-button',
             shopButton: '#shop-button', shopModal: '#shop-modal', shopItemsContainer: '#shop-items-container', closeShopButton: '#close-shop-button', bgmChangeButton: '#bgm-change-button',
             jukeboxObject: '#jukebox-object', bgmSelectModal: '#bgm-select-modal', closeBgmModal: '#close-bgm-modal', bgmList: '#bgm-list',
-            
+
             dayDisplay: '#day-display', clockDisplay: '#clock-display',
             dayStartOverlay: '#day-start-overlay', dayStartText: '#day-start-text',
             dailyResultModal: '#daily-result-modal', nextDayButton: '#next-day-button',
             resultRevenue: '#result-revenue', resultExpenses: '#result-expenses', resultProfit: '#result-profit', resultCustomers: '#result-customers', resultScore: '#result-score',
-            
+
             rankStarsContainer: '#rank-stars-container',
             rankUpModal: '#rank-up-modal', rankUpStarCount: '#rank-up-star-count', closeRankUpButton: '#close-rank-up-button',
             rankUpStarsDisplay: '#rank-up-stars-display',
@@ -56,7 +56,7 @@ Object.assign(hamburgerGame, {
             contestRankingScreen: '#contest-ranking-screen',
             contestRankingList: '#contest-ranking-list',
             contestRankingCloseButton: '#contest-ranking-close-button',
-            
+
             // コンテスト解放通知
             contestUnlockModal: '#contest-unlock-modal',
             contestUnlockCloseButton: '#contest-unlock-close-button'
@@ -64,8 +64,8 @@ Object.assign(hamburgerGame, {
         for (const k in s) { this.elements[k] = document.querySelector(s[k]); }
     },
 
-    bindGlobalEvents() { 
-        this.elements.startButton.addEventListener('click', () => this.startGame()); 
+    bindGlobalEvents() {
+        this.elements.startButton.addEventListener('click', () => this.startGame());
         this.elements.settingsIcon.addEventListener('click', () => this.toggleSettingsPanel());
         this.elements.closeSettingsButton.addEventListener('click', () => this.toggleSettingsPanel());
         this.elements.zoomInButton.addEventListener('click', () => this.changeZoom(0.1));
@@ -77,7 +77,7 @@ Object.assign(hamburgerGame, {
         this.elements.bgmChangeButton.addEventListener('click', () => this.cycleBgm());
         this.elements.jukeboxObject.addEventListener('click', () => this.openBgmSelect());
         this.elements.closeBgmModal.addEventListener('click', () => this.closeBgmSelect());
-        
+
         this.elements.nextDayButton.addEventListener('click', () => this.nextDay());
         this.elements.closeRankUpButton.addEventListener('click', () => {
             this.elements.rankUpModal.style.display = 'none';
@@ -121,7 +121,7 @@ Object.assign(hamburgerGame, {
                 this.closeContestMenu();
             });
         }
-        
+
         // コンテスト解放通知を閉じる
         if (this.elements.contestUnlockCloseButton) {
             this.elements.contestUnlockCloseButton.addEventListener('click', () => {
@@ -164,14 +164,14 @@ Object.assign(hamburgerGame, {
         this.elements.trashButton.addEventListener('click', () => this.trashOrder());
         this.elements.showRestockButton.addEventListener('click', () => this.startRestockFlow());
         this.elements.restockConfirmSelectionButton.addEventListener('click', () => this.showRestockConfirmPopup());
-        
+
         if (this.elements.restockReturnToGameButton) {
             this.elements.restockReturnToGameButton.addEventListener('click', () => {
                 this.closeRestockFlow();
                 this.saveGameData();
             });
         }
-        
+
         this.elements.restockAgainButton.addEventListener('click', () => this.restartRestockFlow());
         this.elements.restockPayButton.addEventListener('click', () => this.processPaymentAndStartMinigame());
         this.elements.restockCancelButton.addEventListener('click', () => this.hideRestockConfirmPopup());
@@ -206,10 +206,22 @@ Object.assign(hamburgerGame, {
         if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err => { console.error(`Error: ${err.message}`); }); } else { if (document.exitFullscreen) { document.exitFullscreen(); } }
     },
 
-    initializePanels() { 
-        const c = (id, d) => { const b = document.createElement('button'); b.dataset.id = id; b.innerHTML = `<img src="${this.config.IMAGE_PATH + d.image}"><span>${d.name}</span>`; if (d.stock !== Infinity) { b.innerHTML += `<div class="stock-display">${d.stock}</div>`; } return b; }; 
-        this.data.displayOrder.forEach(id => { if (this.data.ingredients[id]) { this.elements.ingredientsPanel.appendChild(c(id, this.data.ingredients[id])); } }); 
-        for (const id in this.data.drinks) { this.elements.drinksPanel.appendChild(c(id, this.data.drinks[id])); } 
+    initializePanels() {
+        const c = (id, d) => {
+            const b = document.createElement('button');
+            b.dataset.id = id;
+            b.innerHTML = `<img src="${this.config.IMAGE_PATH + d.image}"><span>${d.name}</span>`;
+            if (d.stock !== Infinity) { b.innerHTML += `<div class="stock-display">${d.stock}</div>`; }
+
+            // ランク要件チェック
+            if (d.reqRank && this.state.currentRank < d.reqRank) {
+                b.style.display = 'none';
+            }
+
+            return b;
+        };
+        this.data.displayOrder.forEach(id => { if (this.data.ingredients[id]) { this.elements.ingredientsPanel.appendChild(c(id, this.data.ingredients[id])); } });
+        for (const id in this.data.drinks) { this.elements.drinksPanel.appendChild(c(id, this.data.drinks[id])); }
     },
 
     updateUI() {
@@ -222,36 +234,36 @@ Object.assign(hamburgerGame, {
         this.elements.serveButton.disabled = this.state.playerSelection.burger.length === 0;
         this.elements.undoButton.disabled = this.state.playerSelection.burger.length === 0;
         this.elements.trashButton.disabled = !h;
-        
+
         this.elements.showRestockButton.disabled = false;
-        
+
         this.elements.orderList.innerHTML = '';
         if (this.state.currentOrder.burger.length > 0) {
             [...this.state.currentOrder.burger].reverse().forEach(id => { const li = document.createElement('li'); const data = this.data.ingredients[id]; const nameHTML = id.includes('bun') ? data.name : `<b>${data.name}</b>`; li.innerHTML = `<img src="${this.config.IMAGE_PATH + data.image}" alt="${data.name}">${nameHTML}`; this.elements.orderList.appendChild(li); });
             if (this.state.currentOrder.drink) { const li = document.createElement('li'); const data = this.data.drinks[this.state.currentOrder.drink]; li.innerHTML = `<img src="${this.config.IMAGE_PATH + data.image}" alt="${data.name}"><b>${data.name}</b>`; this.elements.orderList.appendChild(li); }
         } else { this.elements.orderList.innerHTML = '<li>（ご注文はまだかな？）</li>'; }
         this.elements.burgerStack.innerHTML = '';
-        this.state.playerSelection.burger.forEach(item => { 
-            const container = document.createElement('div'); 
-            container.className = 'ingredient-image-stack'; 
-            const img = document.createElement('img'); 
-            img.src = this.config.IMAGE_PATH + this.data.ingredients[item.id].image; 
-            container.appendChild(img); 
-            
-            if (item.quality !== 'normal') { 
-                const effect = document.createElement('div'); 
-                effect.className = `quality-effect quality-${item.quality}`; 
-                
-                container.appendChild(effect); 
-                void effect.offsetWidth; 
-                
+        this.state.playerSelection.burger.forEach(item => {
+            const container = document.createElement('div');
+            container.className = 'ingredient-image-stack';
+            const img = document.createElement('img');
+            img.src = this.config.IMAGE_PATH + this.data.ingredients[item.id].image;
+            container.appendChild(img);
+
+            if (item.quality !== 'normal') {
+                const effect = document.createElement('div');
+                effect.className = `quality-effect quality-${item.quality}`;
+
+                container.appendChild(effect);
+                void effect.offsetWidth;
+
                 effect.style.animation = 'none';
                 requestAnimationFrame(() => {
                     effect.style.animation = '';
                 });
-            } 
-            
-            this.elements.burgerStack.appendChild(container); 
+            }
+
+            this.elements.burgerStack.appendChild(container);
         });
         if (this.state.playerSelection.drink) { this.elements.drinkDisplay.innerHTML = `<img src="${this.config.IMAGE_PATH + this.data.drinks[this.state.playerSelection.drink.id].image}" alt="${this.data.drinks[this.state.playerSelection.drink.id].name}">`; } else { this.elements.drinkDisplay.innerHTML = '<span>（のみもの）</span>'; }
         this.elements.drinkDisplayContainer.classList.toggle('visible', this.state.playerSelection.drink && this.state.playerSelection.drink.id);
@@ -261,23 +273,31 @@ Object.assign(hamburgerGame, {
 
     showMoneyPopup(amount) { const p = document.createElement('div'); p.textContent = `${amount > 0 ? '+' : ''}${amount}円`; p.className = `money-popup ${amount > 0 ? 'plus' : 'minus'}`; this.elements.statusBar.appendChild(p); p.addEventListener('animationend', () => p.remove()); },
 
-    showCompletedBurger(burgerName, earnings, totalScore, bonusScore) { 
-        const { completedBurgerModal } = this.elements; 
-        completedBurgerModal.innerHTML = ''; 
-        const container = document.createElement('div'); 
-        container.className = 'completed-burger-container'; 
-        
+    showCompletedBurger(burgerName, earnings, totalScore, bonusScore) {
+        const { completedBurgerModal } = this.elements;
+        completedBurgerModal.innerHTML = '';
+        const container = document.createElement('div');
+        container.className = 'completed-burger-container';
+
         const scoreContainer = document.createElement('div');
         scoreContainer.className = 'burger-score-badge';
         scoreContainer.innerHTML = `<div class="score-label">できばえ</div><div class="score-value">${totalScore}${bonusScore !== 0 ? `<span class="score-bonus ${bonusScore > 0 ? 'plus' : 'minus'}">(${bonusScore > 0 ? '+' : ''}${bonusScore})</span>` : ''}</div><div class="score-unit">点</div>`;
         container.appendChild(scoreContainer);
 
-        const visualsContainer = document.createElement('div'); visualsContainer.className = 'completed-visuals'; const imageContainer = document.createElement('div'); imageContainer.className = 'burger-image-container'; let currentHeight = 0; 
-        this.state.currentOrder.burger.forEach((id, index) => { const img = document.createElement('img'); img.src = this.config.IMAGE_PATH + this.data.ingredients[id].image; img.className = 'completed-ingredient-image'; img.style.bottom = `${currentHeight}px`; img.style.zIndex = index; img.style.animationDelay = `${index * 0.15}s`; imageContainer.appendChild(img); currentHeight += this.data.ingredients[id].height; }); visualsContainer.appendChild(imageContainer); 
-        if (this.state.currentOrder.drink) { const drinkImg = document.createElement('img'); drinkImg.src = this.config.IMAGE_PATH + this.data.drinks[this.state.currentOrder.drink].image; drinkImg.className = 'completed-drink-image'; visualsContainer.appendChild(drinkImg); } 
-        let finalBurgerName = burgerName; if (this.state.playerSelection.drink) { const drinkData = this.data.drinks[this.state.playerSelection.drink.id]; const qualityName = drinkData.qualityNames[this.state.playerSelection.drink.quality]; finalBurgerName += ` + ${qualityName || drinkData.name}`; } 
-        const nameEl = document.createElement('div'); nameEl.className = 'burger-name'; nameEl.textContent = finalBurgerName; const priceEl = document.createElement('div'); priceEl.className = 'burger-price'; priceEl.textContent = `${earnings}円で売れました！`; container.appendChild(visualsContainer); container.appendChild(nameEl); container.appendChild(priceEl); completedBurgerModal.appendChild(container); completedBurgerModal.style.display = 'flex'; 
-        setTimeout(() => { completedBurgerModal.style.display = 'none'; this.resetForNextCustomer(); }, 3500); 
+        const visualsContainer = document.createElement('div'); visualsContainer.className = 'completed-visuals'; const imageContainer = document.createElement('div'); imageContainer.className = 'burger-image-container'; let currentHeight = 0;
+        this.state.currentOrder.burger.forEach((id, index) => { const img = document.createElement('img'); img.src = this.config.IMAGE_PATH + this.data.ingredients[id].image; img.className = 'completed-ingredient-image'; img.style.bottom = `${currentHeight}px`; img.style.zIndex = index; img.style.animationDelay = `${index * 0.15}s`; imageContainer.appendChild(img); currentHeight += this.data.ingredients[id].height; }); visualsContainer.appendChild(imageContainer);
+        if (this.state.currentOrder.drink) { const drinkImg = document.createElement('img'); drinkImg.src = this.config.IMAGE_PATH + this.data.drinks[this.state.currentOrder.drink].image; drinkImg.className = 'completed-drink-image'; visualsContainer.appendChild(drinkImg); }
+        let finalBurgerName = burgerName;
+        if (this.state.playerSelection.drink) {
+            const drinkData = this.data.drinks[this.state.playerSelection.drink.id];
+            let qualityName;
+            if (drinkData.qualityNames) {
+                qualityName = drinkData.qualityNames[this.state.playerSelection.drink.quality];
+            }
+            finalBurgerName += ` + ${qualityName || drinkData.name}`;
+        }
+        const nameEl = document.createElement('div'); nameEl.className = 'burger-name'; nameEl.textContent = finalBurgerName; const priceEl = document.createElement('div'); priceEl.className = 'burger-price'; priceEl.textContent = `${earnings}円で売れました！`; container.appendChild(visualsContainer); container.appendChild(nameEl); container.appendChild(priceEl); completedBurgerModal.appendChild(container); completedBurgerModal.style.display = 'flex';
+        setTimeout(() => { completedBurgerModal.style.display = 'none'; this.resetForNextCustomer(); }, 3500);
     },
 
     openShop() { if (this.state.minigameActive) return; this.elements.shopModal.style.display = 'flex'; this.renderShopItems(); },
@@ -332,15 +352,15 @@ Object.assign(hamburgerGame, {
     showDailyResult() {
         const { revenue, expenses, customers, score } = this.state.dailyStats;
         const profit = revenue - expenses;
-        
+
         const fmtMoney = (val) => (val >= 0 ? '+' : '') + val;
 
         this.elements.resultRevenue.textContent = fmtMoney(revenue);
         this.elements.resultExpenses.textContent = expenses > 0 ? '-' + expenses : '0';
-        
+
         this.elements.resultProfit.textContent = fmtMoney(profit);
         this.elements.resultProfit.style.color = profit >= 0 ? 'var(--main-green)' : 'var(--main-red)';
-        
+
         this.elements.resultCustomers.textContent = customers;
         this.elements.resultScore.textContent = score;
 
@@ -351,7 +371,7 @@ Object.assign(hamburgerGame, {
         const container = this.elements.rankStarsContainer;
         if (!container) return;
         container.innerHTML = '';
-        
+
         const starPath = "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
 
         for (let i = 0; i < 5; i++) {
@@ -393,7 +413,7 @@ Object.assign(hamburgerGame, {
             path.setAttribute("stroke", "#6d4c41");
             path.setAttribute("stroke-width", "2");
             path.setAttribute("stroke-linejoin", "round");
-            
+
             svg.appendChild(path);
             container.appendChild(svg);
         }
@@ -402,15 +422,15 @@ Object.assign(hamburgerGame, {
     updateRankDisplay() {
         const score = this.state.totalRankScore;
         const thresholds = this.rankData.thresholds;
-        
+
         let prevThreshold = 0;
         let newRank = 0;
-        
+
         for (let i = 0; i < 5; i++) {
             const target = thresholds[i];
             const range = target - prevThreshold;
             const currentInZone = Math.max(0, score - prevThreshold);
-            
+
             let percent = 0;
             if (score >= target) {
                 percent = 100;
@@ -420,21 +440,21 @@ Object.assign(hamburgerGame, {
             } else {
                 percent = 0;
             }
-            
+
             const stopEl = document.getElementById(`rank-stop-${i}`);
             const stopTransEl = document.getElementById(`rank-stop-trans-${i}`);
             if (stopEl && stopTransEl) {
                 stopEl.setAttribute("offset", `${percent}%`);
                 stopTransEl.setAttribute("offset", `${percent}%`);
             }
-            
+
             prevThreshold = target;
         }
 
         if (newRank > this.state.currentRank) {
-            const oldRank = this.state.currentRank; 
+            const oldRank = this.state.currentRank;
             this.state.currentRank = newRank;
-            
+
             this.showRankUpPopup(newRank);
 
             // コンテスト解放通知 (ランク3到達時)
@@ -446,6 +466,19 @@ Object.assign(hamburgerGame, {
                     }
                 }, 2500);
             }
+
+            // 新商品解放チェック
+            Object.keys(this.data.drinks).forEach(id => {
+                const item = this.data.drinks[id];
+                if (item.reqRank && oldRank < item.reqRank && newRank >= item.reqRank) {
+                    setTimeout(() => {
+                        this.showItemUnlockModal(item);
+                        // ボタンを表示状態にする
+                        const btn = this.elements.drinksPanel.querySelector(`button[data-id="${id}"]`);
+                        if (btn) btn.style.display = 'flex';
+                    }, 2500); // ランクアップ演出の後
+                }
+            });
         }
 
         if (this.elements.titleScreen.style.display === 'none') {
@@ -459,10 +492,10 @@ Object.assign(hamburgerGame, {
 
     showRankUpPopup(rank) {
         this.elements.rankUpStarCount.textContent = rank;
-        
+
         const container = this.elements.rankUpStarsDisplay;
         container.innerHTML = '';
-        
+
         const starPath = "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
         const svgNS = "http://www.w3.org/2000/svg";
 
@@ -471,7 +504,7 @@ Object.assign(hamburgerGame, {
             svg.setAttribute("width", "60");
             svg.setAttribute("height", "60");
             svg.setAttribute("viewBox", "0 0 24 24");
-            
+
             svg.style.opacity = "0";
             svg.style.transform = "scale(0)";
             svg.style.transition = `all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${i * 0.2}s`;
@@ -482,7 +515,7 @@ Object.assign(hamburgerGame, {
             path.setAttribute("stroke", "#6d4c41");
             path.setAttribute("stroke-width", "1.5");
             path.setAttribute("stroke-linejoin", "round");
-            
+
             svg.appendChild(path);
             container.appendChild(svg);
 
@@ -495,7 +528,7 @@ Object.assign(hamburgerGame, {
         }
 
         this.playSound(this.sounds.success);
-        
+
         setTimeout(() => {
             this.playSound(this.sounds.rankUp);
         }, 800);
@@ -522,7 +555,7 @@ Object.assign(hamburgerGame, {
             svg.setAttribute("width", "40");
             svg.setAttribute("height", "40");
             svg.setAttribute("viewBox", "0 0 24 24");
-            
+
             const path = document.createElementNS(svgNS, "path");
             path.setAttribute("d", starPath);
             path.setAttribute("stroke", "#6d4c41");
@@ -534,7 +567,7 @@ Object.assign(hamburgerGame, {
             } else {
                 path.setAttribute("fill", "#eee"); // 未獲得
             }
-            
+
             svg.appendChild(path);
             starContainer.appendChild(svg);
         }
@@ -550,7 +583,7 @@ Object.assign(hamburgerGame, {
         // rank 1 -> target 2500 (thresholds[1])
         // ...
         // rank 5 -> MAX
-        
+
         let nextTarget = "MAX";
         if (displayRank < 5) {
             nextTarget = this.rankData.thresholds[displayRank];
@@ -558,5 +591,67 @@ Object.assign(hamburgerGame, {
         nextTargetEl.textContent = nextTarget;
 
         modal.style.display = 'flex';
+    },
+
+    showItemUnlockModal(item) {
+        // コンテスト解放モーダルの構造を再利用、なければ生成
+        // ここでは動的に生成して body か fixed-container に追加する
+
+        const overlay = document.createElement('div');
+        Object.assign(overlay.style, {
+            position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.6)', zIndex: '7500',
+            display: 'flex', justifyContent: 'center', alignItems: 'center'
+        });
+
+        const panel = document.createElement('div');
+        panel.className = 'game-panel';
+        Object.assign(panel.style, {
+            width: '700px', textAlign: 'center', border: '10px solid var(--main-orange)', padding: '40px',
+            backgroundColor: 'var(--panel-bg)', borderRadius: '25px'
+        });
+
+        const title = document.createElement('h2');
+        title.innerHTML = `祝！${item.name}開放！`;
+        Object.assign(title.style, {
+            color: 'var(--main-yellow)', fontSize: '3em', margin: '0 0 20px',
+            textShadow: '3px 3px 0 var(--dark-brown)'
+        });
+
+        const img = document.createElement('img');
+        img.src = this.config.IMAGE_PATH + item.image;
+        Object.assign(img.style, {
+            width: '200px', height: 'auto', objectFit: 'contain', marginBottom: '20px',
+            filter: 'drop-shadow(0 5px 10px rgba(0,0,0,0.2))'
+        });
+
+        const msg = document.createElement('p');
+        msg.innerHTML = `お店のランクがあがって<br><strong>${item.name}</strong>を提供できるようになりました！`;
+        Object.assign(msg.style, {
+            fontSize: '1.8em', fontWeight: '800', lineHeight: '1.4',
+            color: 'var(--dark-brown)', margin: '10px 0 30px'
+        });
+
+        const btn = document.createElement('button');
+        btn.textContent = 'わかった！';
+        btn.className = 'action-button-style';
+        Object.assign(btn.style, {
+            backgroundColor: 'var(--main-green)', fontSize: '1.5em', padding: '15px 50px',
+            color: 'white', border: 'none', borderRadius: '20px',
+            boxShadow: '0 6px 0 var(--dark-brown)'
+        });
+
+        btn.onclick = () => {
+            overlay.remove();
+        };
+
+        panel.appendChild(title);
+        panel.appendChild(img);
+        panel.appendChild(msg);
+        panel.appendChild(btn);
+        overlay.appendChild(panel);
+
+        this.elements.fixedContainer.appendChild(overlay);
+        this.playSound(this.sounds.success);
     }
 });

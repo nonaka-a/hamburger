@@ -38,13 +38,13 @@ Object.assign(hamburgerGame, {
 
         const stopHandler = (e) => {
             if (e.type === 'touchstart') e.preventDefault();
-            
+
             if (isStopped) return;
             isStopped = true;
 
-            this.sounds.grill.pause(); 
+            this.sounds.grill.pause();
             if (animation) animation.pause();
-            
+
             const pos = (grillCursor.offsetLeft / grillMinigame.querySelector('.grill-meter-bar').offsetWidth) * 100;
             let quality = 'bad';
             let resultText = '';
@@ -89,9 +89,9 @@ Object.assign(hamburgerGame, {
         grillStopButton.addEventListener('touchstart', stopHandler, { passive: false });
     },
 
-    startPourMinigame(id) { 
-        this.state.minigameActive = true; 
-        const { minigameDock, pourMinigame, pourLiquid, pourButton } = this.elements; 
+    startPourMinigame(id) {
+        this.state.minigameActive = true;
+        const { minigameDock, pourMinigame, pourLiquid, pourButton } = this.elements;
 
         const hasServer = this.state.purchasedItems.includes('juice_server');
         const excZone = pourMinigame.querySelector('.pour-zone.excellent');
@@ -109,55 +109,55 @@ Object.assign(hamburgerGame, {
             goodZone.style.top = '5%';
         }
 
-        minigameDock.style.display = 'block'; 
-        pourMinigame.style.display = 'block'; 
-        pourLiquid.style.height = '0%'; 
-        pourLiquid.style.backgroundColor = id === 'coke' ? '#3e2723' : id === 'orange-juice' ? '#ff9800' : '#e3f2fd'; 
-        
+        minigameDock.style.display = 'block';
+        pourMinigame.style.display = 'block';
+        pourLiquid.style.height = '0%';
+        pourLiquid.style.backgroundColor = id === 'coke' ? '#3e2723' : id === 'orange-juice' ? '#ff9800' : '#e3f2fd';
+
         let interval;
         let isPouring = false;
-        
-        const startPour = (e) => { 
+
+        const startPour = (e) => {
             if (e.type === 'touchstart') e.preventDefault();
             if (isPouring) return;
             isPouring = true;
-            this.playSound(this.sounds.pour, true); 
-            interval = setInterval(() => { pourLiquid.style.height = `${Math.min(100, parseFloat(pourLiquid.style.height) + 1)}%`; }, 20); 
-        }; 
-        
-        const stopPour = (e) => { 
+            this.playSound(this.sounds.pour, true);
+            interval = setInterval(() => { pourLiquid.style.height = `${Math.min(100, parseFloat(pourLiquid.style.height) + 1)}%`; }, 20);
+        };
+
+        const stopPour = (e) => {
             if (!isPouring) return;
             isPouring = false;
-            this.sounds.pour.pause(); 
-            clearInterval(interval); 
-            const height = parseFloat(pourLiquid.style.height); 
-            let quality = 'failed'; 
+            this.sounds.pour.pause();
+            clearInterval(interval);
+            const height = parseFloat(pourLiquid.style.height);
+            let quality = 'failed';
 
             if (hasServer) {
-                if (height >= 70 && height <= 90) quality = 'excellent'; 
-                else if (height >= 60 && height <= 98) quality = 'good'; 
+                if (height >= 70 && height <= 90) quality = 'excellent';
+                else if (height >= 60 && height <= 98) quality = 'good';
                 else if (height >= 50) quality = 'normal';
             } else {
-                if (height >= 75 && height <= 85) quality = 'excellent'; 
-                else if (height >= 65 && height <= 95) quality = 'good'; 
+                if (height >= 75 && height <= 85) quality = 'excellent';
+                else if (height >= 65 && height <= 95) quality = 'good';
                 else if (height >= 50) quality = 'normal';
             }
-            
-            this.addDrink(id, quality); 
-            minigameDock.style.display = 'none'; 
-            pourMinigame.style.display = 'none'; 
-            this.state.minigameActive = false; 
-            
-            pourButton.removeEventListener('mousedown', startPour); 
-            pourButton.removeEventListener('mouseup', stopPour); 
+
+            this.addDrink(id, quality);
+            minigameDock.style.display = 'none';
+            pourMinigame.style.display = 'none';
+            this.state.minigameActive = false;
+
+            pourButton.removeEventListener('mousedown', startPour);
+            pourButton.removeEventListener('mouseup', stopPour);
             pourButton.removeEventListener('mouseleave', stopPour);
             pourButton.removeEventListener('touchstart', startPour);
             pourButton.removeEventListener('touchend', stopPour);
             pourButton.removeEventListener('touchcancel', stopPour);
-        }; 
-        
-        pourButton.addEventListener('mousedown', startPour); 
-        pourButton.addEventListener('mouseup', stopPour); 
+        };
+
+        pourButton.addEventListener('mousedown', startPour);
+        pourButton.addEventListener('mouseup', stopPour);
         pourButton.addEventListener('mouseleave', stopPour);
         pourButton.addEventListener('touchstart', startPour, { passive: false });
         pourButton.addEventListener('touchend', stopPour);
@@ -165,11 +165,19 @@ Object.assign(hamburgerGame, {
     },
 
     startRestockFlow() { if (this.state.minigameActive) return; this.state.minigameActive = true; this.state.restock.selection = []; this.elements.restockGameModal.style.display = 'flex'; this.elements.restockSelectionScreen.style.display = 'block'; this.elements.restockMinigameScreen.style.display = 'none'; this.elements.restockResultScreen.style.display = 'none'; this.populateRestockSelection(); this.updateRestockCost(); },
-    
+
     populateRestockSelection() {
         const listEl = this.elements.restockItemList; listEl.innerHTML = ''; const allItems = { ...this.data.ingredients, ...this.data.drinks };
+        const currentRank = this.state.currentRank || 0;
+
         [...this.data.middleIngredients, ...Object.keys(this.data.drinks)].forEach(id => {
-            const item = allItems[id]; if (item.purchasePrice === undefined) return; const btn = document.createElement('button'); btn.className = 'restock-item-button'; btn.dataset.id = id;
+            const item = allItems[id];
+            if (item.purchasePrice === undefined) return;
+
+            // ランク要件チェック
+            if (item.reqRank && currentRank < item.reqRank) return;
+
+            const btn = document.createElement('button'); btn.className = 'restock-item-button'; btn.dataset.id = id;
             btn.innerHTML = `<img src="${this.config.IMAGE_PATH + item.image}" alt="${item.name}"><span>${item.name}</span><span class="restock-item-stock">在庫: ${item.stock}</span>`;
             btn.addEventListener('click', () => this.handleRestockSelection(id)); listEl.appendChild(btn);
         });
@@ -201,10 +209,10 @@ Object.assign(hamburgerGame, {
     processPaymentAndStartMinigame() {
         this.hideRestockConfirmPopup(); const allItems = { ...this.data.ingredients, ...this.data.drinks };
         let totalCost = 0; this.state.restock.selection.forEach(id => { totalCost += allItems[id].purchasePrice * 5; });
-        
-        this.state.money -= totalCost; 
+
+        this.state.money -= totalCost;
         this.state.dailyStats.expenses += totalCost;
-        
+
         this.showMoneyPopup(-totalCost); this.updateUI();
         this.elements.restockSelectionScreen.style.display = 'none'; this.elements.restockMinigameScreen.style.display = 'block'; this.startCatchMinigame();
     },
@@ -216,9 +224,9 @@ Object.assign(hamburgerGame, {
         this.catchGame.basket = { x: this.catchGame.canvas.width / 2 - 50, y: this.catchGame.canvas.height - 70, width: 100, height: 60, speed: 10, image: this.catchGame.imageCache.basket };
         this.catchGame.items = []; this.catchGame.keys = {};
 
-        this.keydownHandler = e => this.catchGame.keys[e.key] = true; 
+        this.keydownHandler = e => this.catchGame.keys[e.key] = true;
         this.keyupHandler = e => this.catchGame.keys[e.key] = false;
-        document.addEventListener('keydown', this.keydownHandler); 
+        document.addEventListener('keydown', this.keydownHandler);
         document.addEventListener('keyup', this.keyupHandler);
 
         const moveBasket = (clientX) => {
@@ -340,29 +348,29 @@ Object.assign(hamburgerGame, {
             const count = this.state.restock.caughtItems[id];
             if (count > 0) {
                 const currentStock = allItems[id].stock;
-                
+
                 if (currentStock === Infinity) continue;
 
                 const newStock = Math.min(currentStock + count, this.state.maxStock);
                 const addedAmount = newStock - currentStock;
-                
+
                 if (addedAmount > 0) {
                     allItems[id].stock = newStock;
                     totalCaughtCount += addedAmount;
-                    
+
                     const button = this.elements.ingredientsPanel.querySelector(`[data-id="${id}"]`) || this.elements.drinksPanel.querySelector(`[data-id="${id}"]`);
                     if (button) {
-                        const popup = document.createElement('span'); 
-                        popup.className = 'stock-popup-animation'; 
+                        const popup = document.createElement('span');
+                        popup.className = 'stock-popup-animation';
                         popup.textContent = `+${addedAmount}`;
-                        button.style.position = 'relative'; 
-                        button.appendChild(popup); 
+                        button.style.position = 'relative';
+                        button.appendChild(popup);
                         popup.addEventListener('animationend', () => popup.remove());
                     }
                 }
             }
         }
-        
+
         if (totalCaughtCount > 0) {
             this.state.totalRankScore += totalCaughtCount;
             if (this.updateRankDisplay) {
@@ -373,32 +381,32 @@ Object.assign(hamburgerGame, {
         this.updateUI();
     },
 
-    closeRestockFlow() { 
-        this.applyRestockResults(); 
-        
+    closeRestockFlow() {
+        this.applyRestockResults();
+
         if (typeof this.saveGameData === 'function') {
             this.saveGameData();
         }
-        
-        this.elements.restockGameModal.style.display = 'none'; 
-        this.state.minigameActive = false; 
+
+        this.elements.restockGameModal.style.display = 'none';
+        this.state.minigameActive = false;
     },
-    
+
     restartRestockFlow() {
         this.applyRestockResults(); this.state.restock.selection = [];
         this.elements.restockSelectionScreen.style.display = 'block'; this.elements.restockMinigameScreen.style.display = 'none';
         this.elements.restockResultScreen.style.display = 'none'; this.populateRestockSelection(); this.updateRestockCost();
     },
-    
+
     cancelRestockFlow() { this.elements.restockGameModal.style.display = 'none'; this.state.minigameActive = false; },
-    
+
     abortCatchMinigame() {
         if (confirm("ゲームを中断しますか？支払ったお金は戻りません。")) {
             cancelAnimationFrame(this.catchGame.animationFrameId);
             clearInterval(this.catchGame.interval);
             if (this.catchGame.timerInterval) { clearInterval(this.catchGame.timerInterval); }
-            if(this.keydownHandler) document.removeEventListener('keydown', this.keydownHandler);
-            if(this.keyupHandler) document.removeEventListener('keyup', this.keyupHandler);
+            if (this.keydownHandler) document.removeEventListener('keydown', this.keydownHandler);
+            if (this.keyupHandler) document.removeEventListener('keyup', this.keyupHandler);
             if (this.catchGame.mousemoveHandler) { this.catchGame.canvas.removeEventListener('mousemove', this.catchGame.mousemoveHandler); }
             if (this.catchGame.touchmoveHandler) { this.catchGame.canvas.removeEventListener('touchmove', this.catchGame.touchmoveHandler); }
             this.catchGame.keys = {};
