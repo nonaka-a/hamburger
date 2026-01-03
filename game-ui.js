@@ -1,3 +1,5 @@
+// --- START OF FILE game-ui.js ---
+
 Object.assign(hamburgerGame, {
     cacheElements() {
         const s = {
@@ -79,8 +81,11 @@ Object.assign(hamburgerGame, {
         this.elements.closeBgmModal.addEventListener('click', () => this.closeBgmSelect());
 
         this.elements.nextDayButton.addEventListener('click', () => this.nextDay());
+        
+        // ★修正: ランクアップ閉じるボタンで次の通知へ
         this.elements.closeRankUpButton.addEventListener('click', () => {
             this.elements.rankUpModal.style.display = 'none';
+            this.showNextUnlockNotification();
         });
 
         // ランク情報確認
@@ -110,6 +115,8 @@ Object.assign(hamburgerGame, {
             this.elements.contestCloseButton.addEventListener('click', () => this.closeContestMenu());
         }
         if (this.elements.contestStartButton) {
+            // イベントリスナーはinitContestMenuで再設定される場合もあるが、初期バインドとして残す
+            // 実際は game-contest.js で置換される
             this.elements.contestStartButton.addEventListener('click', () => this.startContestGame());
         }
         if (this.elements.contestSubmitButton) {
@@ -122,10 +129,20 @@ Object.assign(hamburgerGame, {
             });
         }
 
-        // コンテスト解放通知を閉じる
+        // コンテスト解放通知を閉じる (ランク3)
         if (this.elements.contestUnlockCloseButton) {
             this.elements.contestUnlockCloseButton.addEventListener('click', () => {
                 this.elements.contestUnlockModal.style.display = 'none';
+                this.showNextUnlockNotification(); // ★追加
+            });
+        }
+        
+        // ★新規: コンテスト解放通知を閉じる (ランク4)
+        const hungryCloseBtn = document.getElementById('contest-hungry-unlock-close-button');
+        if (hungryCloseBtn) {
+            hungryCloseBtn.addEventListener('click', () => {
+                document.getElementById('contest-hungry-unlock-modal').style.display = 'none';
+                this.showNextUnlockNotification(); // ★追加
             });
         }
 
@@ -419,6 +436,9 @@ Object.assign(hamburgerGame, {
         }
     },
 
+    // 解放通知キュー
+    unlockNotificationQueue: [],
+
     updateRankDisplay() {
         const score = this.state.totalRankScore;
         const thresholds = this.rankData.thresholds;
@@ -455,30 +475,43 @@ Object.assign(hamburgerGame, {
             const oldRank = this.state.currentRank;
             this.state.currentRank = newRank;
 
-            this.showRankUpPopup(newRank);
+            this.unlockNotificationQueue = []; // キュー初期化
 
-            // コンテスト解放通知 (ランク3到達時)
+            // コンテスト解放通知 (ランク3)
             if (oldRank < 3 && newRank >= 3) {
-                setTimeout(() => {
+                this.unlockNotificationQueue.push(() => {
                     if (this.elements.contestUnlockModal) {
                         this.playSound(this.sounds.success);
                         this.elements.contestUnlockModal.style.display = 'flex';
                     }
-                }, 2500);
+                });
+            }
+
+            // コンテスト解放通知 (ランク4)
+            if (oldRank < 4 && newRank >= 4) {
+                this.unlockNotificationQueue.push(() => {
+                    const modal = document.getElementById('contest-hungry-unlock-modal');
+                    if (modal) {
+                        this.playSound(this.sounds.success);
+                        modal.style.display = 'flex';
+                    }
+                });
             }
 
             // 新商品解放チェック
             Object.keys(this.data.drinks).forEach(id => {
                 const item = this.data.drinks[id];
                 if (item.reqRank && oldRank < item.reqRank && newRank >= item.reqRank) {
-                    setTimeout(() => {
+                    this.unlockNotificationQueue.push(() => {
                         this.showItemUnlockModal(item);
                         // ボタンを表示状態にする
                         const btn = this.elements.drinksPanel.querySelector(`button[data-id="${id}"]`);
                         if (btn) btn.style.display = 'flex';
-                    }, 2500); // ランクアップ演出の後
+                    });
                 }
             });
+
+            this.showRankUpPopup(newRank);
         }
 
         if (this.elements.titleScreen.style.display === 'none') {
@@ -536,6 +569,14 @@ Object.assign(hamburgerGame, {
         this.elements.rankUpModal.style.display = 'flex';
     },
 
+    // ★新規メソッド: 次の解放通知を表示
+    showNextUnlockNotification() {
+        if (this.unlockNotificationQueue.length > 0) {
+            const nextAction = this.unlockNotificationQueue.shift();
+            nextAction();
+        }
+    },
+
     // 追加: ランク情報表示
     showRankInfo() {
         const modal = this.elements.rankInfoModal;
@@ -575,14 +616,6 @@ Object.assign(hamburgerGame, {
         // スコア情報の表示
         const currentScore = this.state.totalRankScore;
         currentScoreEl.textContent = currentScore;
-
-        // 次のランクの目標値を探す
-        // currentRankは 0～5 (5ならMAX)
-        // thresholds: [1000, 2500, 4000, 6000, 10000]
-        // rank 0 -> target 1000 (thresholds[0])
-        // rank 1 -> target 2500 (thresholds[1])
-        // ...
-        // rank 5 -> MAX
 
         let nextTarget = "MAX";
         if (displayRank < 5) {
@@ -643,6 +676,7 @@ Object.assign(hamburgerGame, {
 
         btn.onclick = () => {
             overlay.remove();
+            this.showNextUnlockNotification(); // ★追加
         };
 
         panel.appendChild(title);

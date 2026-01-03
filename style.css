@@ -1913,3 +1913,85 @@ body {
 #rank-stars-container:active {
     transform: scale(0.95);
 }
+
+/* --- style.css への追記 --- */
+
+/* コンテスト選択用ナビゲーションボタン */
+.contest-nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--main-yellow);
+    color: var(--dark-brown);
+    border: 3px solid var(--dark-brown);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 2em;
+    font-weight: 800;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.1s;
+}
+.contest-nav-button:active {
+    transform: translateY(-45%);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+}
+.contest-nav-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* --- style.css への追記・修正 --- */
+
+/* ハングリー×アングリー操作ボタン */
+.ha-btn {
+    position: absolute;
+    bottom: 40px;
+    width: 120px;
+    height: 120px;
+    background: #fff;
+    border: 8px solid #ccc; /* 個別に色指定 */
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 8px 0 rgba(0,0,0,0.3), 0 0 20px rgba(255,255,255,0.2);
+    transition: transform 0.05s, filter 0.1s;
+    z-index: 20;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ha-btn:active, .ha-btn.active {
+    transform: translateY(8px) scale(0.95);
+    box-shadow: 0 0 0 rgba(0,0,0,0.3);
+    filter: brightness(0.9);
+}
+
+.ha-btn img {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+/* 判定エフェクト */
+.judge-effect {
+    position: absolute;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 15;
+    animation: judge-ring 0.4s ease-out forwards;
+}
+
+@keyframes judge-ring {
+    0% { width: 120px; height: 120px; opacity: 1; border: 10px solid gold; }
+    100% { width: 200px; height: 200px; opacity: 0; border: 2px solid gold; }
+}

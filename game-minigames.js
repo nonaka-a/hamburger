@@ -167,7 +167,9 @@ Object.assign(hamburgerGame, {
     startRestockFlow() { if (this.state.minigameActive) return; this.state.minigameActive = true; this.state.restock.selection = []; this.elements.restockGameModal.style.display = 'flex'; this.elements.restockSelectionScreen.style.display = 'block'; this.elements.restockMinigameScreen.style.display = 'none'; this.elements.restockResultScreen.style.display = 'none'; this.populateRestockSelection(); this.updateRestockCost(); },
 
     populateRestockSelection() {
-        const listEl = this.elements.restockItemList; listEl.innerHTML = ''; const allItems = { ...this.data.ingredients, ...this.data.drinks };
+        const listEl = this.elements.restockItemList; 
+        listEl.innerHTML = ''; 
+        const allItems = { ...this.data.ingredients, ...this.data.drinks };
         const currentRank = this.state.currentRank || 0;
 
         [...this.data.middleIngredients, ...Object.keys(this.data.drinks)].forEach(id => {
@@ -177,9 +179,21 @@ Object.assign(hamburgerGame, {
             // ランク要件チェック
             if (item.reqRank && currentRank < item.reqRank) return;
 
-            const btn = document.createElement('button'); btn.className = 'restock-item-button'; btn.dataset.id = id;
-            btn.innerHTML = `<img src="${this.config.IMAGE_PATH + item.image}" alt="${item.name}"><span>${item.name}</span><span class="restock-item-stock">在庫: ${item.stock}</span>`;
-            btn.addEventListener('click', () => this.handleRestockSelection(id)); listEl.appendChild(btn);
+            const btn = document.createElement('button'); 
+            btn.className = 'restock-item-button'; 
+            btn.dataset.id = id;
+
+            // 在庫数に応じたスタイル設定
+            let stockStyle = '';
+            if (item.stock <= 0) {
+                stockStyle = 'color: var(--main-red); font-weight: 800;';
+            } else if (item.stock <= 2) {
+                stockStyle = 'color: var(--main-orange); font-weight: 800;';
+            }
+
+            btn.innerHTML = `<img src="${this.config.IMAGE_PATH + item.image}" alt="${item.name}"><span>${item.name}</span><span class="restock-item-stock" style="${stockStyle}">在庫: ${item.stock}</span>`;
+            btn.addEventListener('click', () => this.handleRestockSelection(id)); 
+            listEl.appendChild(btn);
         });
     },
 

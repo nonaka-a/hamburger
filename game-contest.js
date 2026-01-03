@@ -1,6 +1,8 @@
+// --- START OF FILE game-contest.js ---
+
 Object.assign(hamburgerGame, {
     // ==========================================
-    // トールバーガーコンテスト機能
+    // トールバーガーコンテスト機能 & コンテスト管理
     // ==========================================
     
     contest: {
@@ -28,7 +30,60 @@ Object.assign(hamburgerGame, {
         cameraZoom: 1.0, 
         backgroundImage: null,
         countdown: 0, 
-        isCountingDown: false
+        isCountingDown: false,
+
+        // コンテスト管理用
+        currentContestType: 'tower',
+        _menuInitialized: false,
+        contestTypes: [
+            {
+                id: 'tower',
+                title: 'トールバーガーコンテスト',
+                desc: '<p style="margin: 0 0 10px;">落ちてくる具材を<br><strong>下のバンズ</strong>でキャッチして<br>高く積み上げよう！</p><p style="margin: 0;">制限時間は20秒。<br>最後に<strong>上のバンズ</strong>を乗せて完成だ！</p>',
+                img: 'images/contest-icon-large.png',
+                reqRank: 3
+            },
+            {
+                id: 'hungry',
+                title: 'ハングリー×アングリー<br>コンテスト',
+                desc: '<p style="margin: 0 0 10px;">お腹を空かせた審査員に<br>リズムに合わせて料理を提供しよう！</p><p style="margin: 0;">お腹メーターが0になると激怒！<br>最後まで満足させ続けろ！</p>',
+                img: 'images/contest-hungry-icon.png', // ★変更しました
+                reqRank: 4
+            }
+        ]
+    },
+
+    initContestMenu() {
+        if (this.contest._menuInitialized) return;
+        
+        const prevBtn = document.getElementById('contest-prev-button');
+        const nextBtn = document.getElementById('contest-next-button');
+        
+        if (prevBtn) prevBtn.addEventListener('click', () => this.switchContest(-1));
+        if (nextBtn) nextBtn.addEventListener('click', () => this.switchContest(1));
+        
+        // スタートボタンの挙動を上書き
+        const startBtn = document.getElementById('contest-start-button');
+        if (startBtn) {
+            // イベントリスナーの重複を防ぐため、新しい要素に置き換える
+            const newBtn = startBtn.cloneNode(true);
+            startBtn.parentNode.replaceChild(newBtn, startBtn);
+            
+            newBtn.addEventListener('click', () => {
+                if (this.contest.currentContestType === 'tower') {
+                    this.startContestGame();
+                } else if (this.contest.currentContestType === 'hungry') {
+                    // スタート画面を隠す
+                    document.getElementById('contest-start-screen').style.display = 'none';
+                    document.getElementById('hungry-angry-game-screen').style.display = 'block';
+                    this.hungryAngry.startGame();
+                }
+            });
+            // 参照更新
+            this.elements.contestStartButton = newBtn;
+        }
+
+        this.contest._menuInitialized = true;
     },
 
     openContestMenu() {
@@ -42,6 +97,12 @@ Object.assign(hamburgerGame, {
         this.elements.contestPlayScreen.style.display = 'none';
         this.elements.contestResultScreen.style.display = 'none';
         this.elements.contestRankingScreen.style.display = 'none';
+        
+        const haScreen = document.getElementById('hungry-angry-game-screen');
+        if (haScreen) haScreen.style.display = 'none';
+
+        this.initContestMenu();
+        this.updateContestMenuUI();
     },
 
     closeContestMenu() {
@@ -50,7 +111,58 @@ Object.assign(hamburgerGame, {
         
         if (this.stopContestBgm) this.stopContestBgm();
         
-        this.endContestGame();
+        this.endContestGame(); // トールバーガー終了処理
+        if (this.hungryAngry && this.hungryAngry.close) {
+            this.hungryAngry.close(); // ハングリーアングリー終了処理
+        }
+    },
+
+    switchContest(direction) {
+        const types = this.contest.contestTypes;
+        let idx = types.findIndex(t => t.id === this.contest.currentContestType);
+        
+        idx += direction;
+        if (idx < 0) idx = types.length - 1;
+        if (idx >= types.length) idx = 0;
+        
+        this.contest.currentContestType = types[idx].id;
+        this.updateContestMenuUI();
+        this.playSound(this.sounds.select);
+    },
+
+    updateContestMenuUI() {
+        const data = this.contest.contestTypes.find(t => t.id === this.contest.currentContestType);
+        const currentRank = this.state.currentRank || 0;
+        const isLocked = currentRank < data.reqRank;
+
+        const titleEl = document.getElementById('contest-info-title');
+        const descEl = document.getElementById('contest-info-desc');
+        const imgEl = document.getElementById('contest-info-image');
+        const startBtn = document.getElementById('contest-start-button');
+        const lockMsg = document.getElementById('contest-lock-message');
+
+        if (titleEl) titleEl.innerHTML = data.title;
+        if (descEl) descEl.innerHTML = data.desc;
+        if (imgEl) imgEl.src = data.img;
+
+        if (startBtn) {
+            if (isLocked) {
+                startBtn.disabled = true;
+                startBtn.style.opacity = '0.5';
+                startBtn.style.cursor = 'not-allowed';
+                startBtn.textContent = 'LOCKED';
+                if (lockMsg) {
+                    lockMsg.style.display = 'block';
+                    lockMsg.textContent = `ランク${data.reqRank}で解放！`;
+                }
+            } else {
+                startBtn.disabled = false;
+                startBtn.style.opacity = '1';
+                startBtn.style.cursor = 'pointer';
+                startBtn.textContent = '挑戦する';
+                if (lockMsg) lockMsg.style.display = 'none';
+            }
+        }
     },
 
     async startContestGame() {
