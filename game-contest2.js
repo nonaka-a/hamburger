@@ -1,3 +1,5 @@
+// --- START OF FILE game-contest2.js ---
+
 Object.assign(hamburgerGame, {
     // ==========================================
     // ハングリー×アングリー コンテスト (リズムゲーム) v2
@@ -12,18 +14,22 @@ Object.assign(hamburgerGame, {
         score: 0,
         combo: 0,
         maxCombo: 0,
-        hunger: 50, // 修正: 初期値を50に変更
+        hunger: 50, 
         isPlaying: false,
         animationId: null,
         ctx: null,
         canvas: null,
+
+        // 審査員画像の状態管理用
+        judgeState: 'normal', 
+        isReacting: false,    
+        reactionTimer: null,  
 
         // 設定
         laneTypes: ['burger', 'potato', 'coke', 'soft-cream'],
         targets: [
             { x: 120, y: 600, color: '#e74c3c' }, 
             { x: 260, y: 600, color: '#f1c40f' }, 
-            // 修正: コーラとソフトクリームを若干左へずらす (740->700, 880->840)
             { x: 730, y: 600, color: '#3498db' }, 
             { x: 870, y: 600, color: '#2ecc71' }  
         ],
@@ -43,6 +49,43 @@ Object.assign(hamburgerGame, {
             }
             this.preloadImages();
             this.bindControls();
+            this.injectStyles(); // アニメーション用CSS追加
+        },
+
+        // アニメーション用スタイル定義
+        injectStyles() {
+            if (document.getElementById('ha-animation-styles')) return;
+            const style = document.createElement('style');
+            style.id = 'ha-animation-styles';
+            style.innerHTML = `
+                @keyframes judge-bounce {
+                    0% { transform: scale(1); }
+                    30% { transform: scale(1.1); }
+                    50% { transform: scale(0.95); }
+                    70% { transform: scale(1.05); }
+                    100% { transform: scale(1); }
+                }
+                .judge-bounce {
+                    animation: judge-bounce 0.4s ease-out;
+                }
+                @keyframes judge-shake {
+                    0% { transform: translate(0, 0); }
+                    10% { transform: translate(-2px, -2px); }
+                    20% { transform: translate(2px, 2px); }
+                    30% { transform: translate(-2px, 2px); }
+                    40% { transform: translate(2px, -2px); }
+                    50% { transform: translate(-2px, -2px); }
+                    60% { transform: translate(2px, 2px); }
+                    70% { transform: translate(-2px, 2px); }
+                    80% { transform: translate(2px, -2px); }
+                    90% { transform: translate(-2px, -2px); }
+                    100% { transform: translate(0, 0); }
+                }
+                .judge-shake {
+                    animation: judge-shake 0.5s infinite;
+                }
+            `;
+            document.head.appendChild(style);
         },
 
         imageCache: {},
@@ -51,7 +94,15 @@ Object.assign(hamburgerGame, {
                 'burger': 'images/burger-icon.png',
                 'potato': 'images/potato.png',
                 'coke': 'images/coke.png',
-                'soft-cream': 'images/soft-cream.png'
+                'soft-cream': 'images/soft-cream.png',
+                'judge-normal': 'images/judge-normal.png',
+                'judge-worry': 'images/judge-worry.png',
+                'judge-angry': 'images/judge-angry.png',
+                'judge-happy': 'images/judge-happy.png',
+                'judge-eat-burger': 'images/judge-eat-burger.png',
+                'judge-eat-potato': 'images/judge-eat-potato.png',
+                'judge-drink-coke': 'images/judge-drink-coke.png',
+                'judge-eat-softcream': 'images/judge-eat-softcream.png'
             };
             for (let key in images) {
                 const img = new Image();
@@ -61,7 +112,6 @@ Object.assign(hamburgerGame, {
         },
 
         async startGame() {
-            // ★修正: BGM停止処理を強化
             if (hamburgerGame.pauseCurrentBgm) {
                 hamburgerGame.pauseCurrentBgm();
             }
@@ -79,7 +129,6 @@ Object.assign(hamburgerGame, {
                 await this.audioCtx.resume();
             }
 
-            // contest2.mp3 をロード
             const bgmUrl = hamburgerGame.config.SOUND_PATH + 'contest2.mp3';
             this.bgmBuffer = await this.loadAudio(bgmUrl);
 
@@ -87,15 +136,26 @@ Object.assign(hamburgerGame, {
             this.isPlaying = true;
             this.score = 0;
             this.combo = 0;
-            this.hunger = 50; // 修正: スタート時50%
-            this.notes = []; // 修正: ノーツを確実にクリア
+            this.hunger = 50;
+            this.notes = []; 
             this.startTime = this.audioCtx.currentTime + 3;
             
+            // 状態リセット
+            this.isReacting = false;
+            if (this.reactionTimer) clearTimeout(this.reactionTimer);
+            this.updateJudgeFace('judge-normal'); 
+            
+            // アニメーションクラスリセット
+            const img = document.getElementById('ha-judge-face');
+            if (img) {
+                img.classList.remove('judge-bounce', 'judge-shake');
+            }
+
             this.generateChart(this.bgmBuffer.duration, 128);
 
             document.getElementById('ha-score').textContent = '0';
             document.getElementById('ha-combo').textContent = '0';
-            this.updateHungerUI(); // 修正: 初期表示更新
+            this.updateHungerUI(); 
             document.getElementById('ha-judge-reaction').textContent = '';
             
             this.runCountdown(() => {
@@ -255,11 +315,6 @@ Object.assign(hamburgerGame, {
             buttons.forEach((btn, index) => {
                 if (!btn) return;
                 
-                // イベントリスナーの重複登録を防ぐため、一度削除するか、フラグ管理が必要だが
-                // ここでは単純化のため cloneNode でリセットする手法をとるか、
-                // init() が一度しか呼ばれない前提ならそのままでよい。
-                // 今回は init() は一度きりの想定で既存コードを踏襲。
-                
                 const handleTap = (e) => {
                     if (!this.active || !this.isPlaying) return;
                     e.preventDefault(); 
@@ -270,8 +325,6 @@ Object.assign(hamburgerGame, {
                     setTimeout(() => btn.classList.remove('active'), 100);
                 };
 
-                // 既存のリスナーが残っている場合の対策として、プロパティで管理してもよいが
-                // ここではシンプルに既存の実装を維持しつつ、init呼び出し制御に委ねる
                 btn.onmousedown = handleTap;
                 btn.ontouchstart = handleTap;
             });
@@ -291,6 +344,9 @@ Object.assign(hamburgerGame, {
                 targetNote.hit = true;
                 
                 this.showHitEffect(this.targets[laneIndex].x, this.targets[laneIndex].y, this.targets[laneIndex].color);
+
+                // リアクション実行
+                this.triggerReaction(this.laneTypes[laneIndex]);
 
                 if (diff <= this.judgementWindows.perfect) {
                     this.judge('perfect');
@@ -359,6 +415,77 @@ Object.assign(hamburgerGame, {
             this.updateHungerUI();
         },
 
+        // リアクション処理 (修正: バウンスアニメーション追加)
+        triggerReaction(type) {
+            this.isReacting = true;
+            if (this.reactionTimer) clearTimeout(this.reactionTimer);
+
+            let imgKey = 'judge-normal';
+            if (type === 'burger') imgKey = 'judge-eat-burger';
+            else if (type === 'potato') imgKey = 'judge-eat-potato';
+            else if (type === 'coke') imgKey = 'judge-drink-coke';
+            else if (type === 'soft-cream') imgKey = 'judge-eat-softcream';
+
+            // リアクション画像に変更
+            const img = document.getElementById('ha-judge-face');
+            if (img && this.imageCache[imgKey]) {
+                img.src = this.imageCache[imgKey].src;
+                
+                // バウンスアニメーション適用
+                img.classList.remove('judge-bounce');
+                img.classList.remove('judge-shake'); // リアクション中はシェイク解除
+                void img.offsetWidth; // リフロー強制
+                img.classList.add('judge-bounce');
+            }
+
+            // 0.5秒後に元の状態（ゲージ依存）に戻す
+            this.reactionTimer = setTimeout(() => {
+                const img = document.getElementById('ha-judge-face');
+                if (img) img.classList.remove('judge-bounce'); // バウンス解除
+                
+                this.isReacting = false;
+                this.updateJudgeFaceByHunger(); 
+            }, 500);
+        },
+
+        // 画像更新ヘルパー
+        updateJudgeFace(imgKey) {
+            const img = document.getElementById('ha-judge-face');
+            if (img && this.imageCache[imgKey]) {
+                img.src = this.imageCache[imgKey].src;
+            }
+        },
+
+        // ゲージ量に基づく表情更新 (修正: Angry時のシェイクアニメーション)
+        updateJudgeFaceByHunger() {
+            if (this.isReacting) return; // リアクション中は更新しない
+
+            let key = 'judge-normal';
+            let isAngry = false;
+
+            if (this.hunger >= 100) key = 'judge-happy';
+            else if (this.hunger >= 60) key = 'judge-normal';
+            else if (this.hunger >= 30) key = 'judge-worry';
+            else {
+                key = 'judge-angry';
+                isAngry = true;
+            }
+
+            this.updateJudgeFace(key);
+
+            // Angryならプルプルさせる
+            const img = document.getElementById('ha-judge-face');
+            if (img) {
+                if (isAngry) {
+                    if (!img.classList.contains('judge-shake')) {
+                        img.classList.add('judge-shake');
+                    }
+                } else {
+                    img.classList.remove('judge-shake');
+                }
+            }
+        },
+
         updateHungerUI() {
             const meter = document.getElementById('ha-hunger-meter');
             if (meter) {
@@ -372,6 +499,7 @@ Object.assign(hamburgerGame, {
                     meter.style.background = 'linear-gradient(90deg, #f1c40f, #2ecc71)';
                 }
             }
+            this.updateJudgeFaceByHunger();
         },
 
         finishGame(completed) {
@@ -430,7 +558,7 @@ Object.assign(hamburgerGame, {
         close() {
             this.active = false;
             this.isPlaying = false;
-            this.notes = []; // 修正: 終了時にノーツクリア
+            this.notes = []; 
             if (this.bgmSource) {
                 try { this.bgmSource.stop(); } catch(e){}
             }
