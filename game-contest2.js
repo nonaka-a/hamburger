@@ -627,7 +627,8 @@ Object.assign(hamburgerGame, {
 
                 html += `<h2 style="color:var(--main-orange)">巨大バーガー完成！</h2>`;
                 html += `<p style="font-size:1.5em">高さ: ${this.heightScore}cm</p>`;
-                html += `<p>スコア: ${this.score} / コンボ: ${this.maxCombo}</p>`;
+                // 修正: スコア表示を削除
+                html += `<p>MAXコンボ: ${this.maxCombo}</p>`;
                 
                 const bonusMoney = Math.floor(this.score / 20);
                 hamburgerGame.state.money += bonusMoney;
@@ -638,7 +639,7 @@ Object.assign(hamburgerGame, {
             } else {
                 hamburgerGame.playSound(hamburgerGame.sounds.failure);
                 html += `<h2 style="color:var(--main-red)">ゲームオーバー...</h2>`;
-                html += `<p>スコア: ${this.score}</p>`;
+                html += `<p>残念！</p>`;
             }
             
             html += `<button id="ha-close-btn" class="action-button-style" style="margin-top:20px; background-color:var(--main-blue)">とじる</button>`;
@@ -647,18 +648,20 @@ Object.assign(hamburgerGame, {
 
             setTimeout(() => {
                 const closeBtn = document.getElementById('ha-close-btn');
-                if (closeBtn) {
-                    closeBtn.addEventListener('click', () => {
-                        if (typeof hamburgerGame.contest.closeContestMenu === 'function') {
-                            hamburgerGame.contest.closeContestMenu();
-                        } else {
-                            this.close();
-                            hamburgerGame.elements.contestGameModal.style.display = 'none';
-                            hamburgerGame.state.minigameActive = false;
-                            if (hamburgerGame.resumeCurrentBgm) hamburgerGame.resumeCurrentBgm();
-                        }
-                    });
-                }
+                // イベントリスナーの重複防止
+                const newBtn = closeBtn.cloneNode(true);
+                closeBtn.parentNode.replaceChild(newBtn, closeBtn);
+                
+                newBtn.addEventListener('click', () => {
+                    if (typeof hamburgerGame.contest.closeContestMenu === 'function') {
+                        hamburgerGame.contest.closeContestMenu();
+                    } else {
+                        this.close();
+                        hamburgerGame.elements.contestGameModal.style.display = 'none';
+                        hamburgerGame.state.minigameActive = false;
+                        if (hamburgerGame.resumeCurrentBgm) hamburgerGame.resumeCurrentBgm();
+                    }
+                });
             }, 0);
         },
         

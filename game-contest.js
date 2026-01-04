@@ -113,9 +113,14 @@ Object.assign(hamburgerGame, {
         if (this.stopContestBgm) this.stopContestBgm();
         
         this.endContestGame(); // トールバーガー終了処理
+        
+        // 修正: コンテスト2のリザルト等も確実に隠す
         if (this.hungryAngry && this.hungryAngry.close) {
-            this.hungryAngry.close(); // ハングリーアングリー終了処理
+            this.hungryAngry.close(); 
         }
+        
+        // 共通リザルト画面を非表示
+        document.getElementById('contest-result-screen').style.display = 'none';
     },
 
     switchContest(direction) {
