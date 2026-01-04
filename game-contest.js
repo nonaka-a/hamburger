@@ -45,9 +45,10 @@ Object.assign(hamburgerGame, {
             },
             {
                 id: 'hungry',
-                title: 'ハングリー×アングリー<br>コンテスト',
-                desc: '<p style="margin: 0 0 10px;">お腹を空かせた審査員に<br>リズムに合わせて料理を提供しよう！</p><p style="margin: 0;">お腹メーターが0になると激怒！<br>最後まで満足させ続けろ！</p>',
-                img: 'images/contest-hungry-icon.png', // ★変更しました
+                // 修正: タイトルと説明文を変更
+                title: 'リズム・バーガータワー<br>コンテスト',
+                desc: '<p style="margin: 0 0 10px;">リズムに合わせて<br>落ちてくる具材をキャッチして積み上げろ！</p><p style="margin: 0;">タイミングよくタップして<br>目指せ！巨大バーガータワー！</p>',
+                img: 'images/contest-hungry-icon.png', 
                 reqRank: 4
             }
         ]

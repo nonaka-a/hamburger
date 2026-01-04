@@ -2,7 +2,7 @@
 
 Object.assign(hamburgerGame, {
     // ==========================================
-    // ハングリー×アングリー コンテスト (リズムゲーム) v2
+    // リズム・バーガータワー コンテスト (旧ハングリー×アングリー)
     // ==========================================
     hungryAngry: {
         active: false,
@@ -12,29 +12,53 @@ Object.assign(hamburgerGame, {
         startTime: 0,
         notes: [], 
         score: 0,
+        heightScore: 0, 
         combo: 0,
         maxCombo: 0,
-        hunger: 50, 
         isPlaying: false,
         animationId: null,
         ctx: null,
         canvas: null,
+        bgElement: null, 
 
-        // 審査員画像の状態管理用
-        judgeState: 'normal', 
-        isReacting: false,    
-        reactionTimer: null,  
+        // 積み上げ・カメラ制御
+        stack: [], 
+        isFinishing: false, 
+        topBunY: -100, 
+        
+        // カメラ制御用
+        cameraY: 0, 
+        targetCameraY: 0,
+        
+        // 沈み込みアニメーション用
+        bounceY: 0,
+        bounceVelocity: 0,
 
-        // 設定
-        laneTypes: ['burger', 'potato', 'coke', 'soft-cream'],
+        // 終了演出用フェーズ管理
+        // 0: 通常プレイ
+        // 1: トップバンズ落下
+        // 2: 下までカメラ戻す
+        // 3: 下から上へゆっくりスクロールアップ
+        // 4: てっぺんで停止して高さ表示
+        finishPhase: 0, 
+        finishTimer: 0, 
+
+        // 設定: 6レーン
+        laneTypes: ['patty', 'egg', 'bacon', 'cheese', 'tomato', 'lettuce'],
+        
+        // ターゲット位置 (キャンバス幅1000px基準)
         targets: [
-            { x: 120, y: 600, color: '#e74c3c' }, 
-            { x: 260, y: 600, color: '#f1c40f' }, 
-            { x: 730, y: 600, color: '#3498db' }, 
-            { x: 870, y: 600, color: '#2ecc71' }  
+            { x: 100, y: 600, color: '#8d6e63', key: 'patty' }, 
+            { x: 230, y: 600, color: '#f1c40f', key: 'egg' }, 
+            { x: 360, y: 600, color: '#e74c3c', key: 'bacon' }, 
+            { x: 630, y: 600, color: '#f39c12', key: 'cheese' },
+            { x: 760, y: 600, color: '#e74c3c', key: 'tomato' },
+            { x: 890, y: 600, color: '#2ecc71', key: 'lettuce' }
         ],
         spawnY: -50,
         fallDuration: 1.5,
+        centerX: 500, 
+        baseY: 600,   
 
         judgementWindows: {
             perfect: 0.1,
@@ -44,45 +68,24 @@ Object.assign(hamburgerGame, {
 
         init() {
             this.canvas = document.getElementById('hungry-angry-canvas');
+            this.bgElement = document.getElementById('ha-bg-overlay');
             if (this.canvas) {
                 this.ctx = this.canvas.getContext('2d');
             }
             this.preloadImages();
             this.bindControls();
-            this.injectStyles(); // アニメーション用CSS追加
+            this.injectStyles();
         },
 
-        // アニメーション用スタイル定義
         injectStyles() {
             if (document.getElementById('ha-animation-styles')) return;
             const style = document.createElement('style');
             style.id = 'ha-animation-styles';
             style.innerHTML = `
-                @keyframes judge-bounce {
-                    0% { transform: scale(1); }
-                    30% { transform: scale(1.1); }
-                    50% { transform: scale(0.95); }
-                    70% { transform: scale(1.05); }
-                    100% { transform: scale(1); }
-                }
-                .judge-bounce {
-                    animation: judge-bounce 0.4s ease-out;
-                }
-                @keyframes judge-shake {
-                    0% { transform: translate(0, 0); }
-                    10% { transform: translate(-2px, -2px); }
-                    20% { transform: translate(2px, 2px); }
-                    30% { transform: translate(-2px, 2px); }
-                    40% { transform: translate(2px, -2px); }
-                    50% { transform: translate(-2px, -2px); }
-                    60% { transform: translate(2px, 2px); }
-                    70% { transform: translate(-2px, 2px); }
-                    80% { transform: translate(2px, -2px); }
-                    90% { transform: translate(-2px, -2px); }
-                    100% { transform: translate(0, 0); }
-                }
-                .judge-shake {
-                    animation: judge-shake 0.5s infinite;
+                @keyframes judge-pop {
+                    0% { transform: scale(0.5); opacity: 0; }
+                    50% { transform: scale(1.2); opacity: 1; }
+                    100% { transform: scale(1); opacity: 1; }
                 }
             `;
             document.head.appendChild(style);
@@ -90,25 +93,19 @@ Object.assign(hamburgerGame, {
 
         imageCache: {},
         preloadImages() {
-            const images = {
-                'burger': 'images/burger-icon.png',
-                'potato': 'images/potato.png',
-                'coke': 'images/coke.png',
-                'soft-cream': 'images/soft-cream.png',
-                'judge-normal': 'images/judge-normal.png',
-                'judge-worry': 'images/judge-worry.png',
-                'judge-angry': 'images/judge-angry.png',
-                'judge-happy': 'images/judge-happy.png',
-                'judge-eat-burger': 'images/judge-eat-burger.png',
-                'judge-eat-potato': 'images/judge-eat-potato.png',
-                'judge-drink-coke': 'images/judge-drink-coke.png',
-                'judge-eat-softcream': 'images/judge-eat-softcream.png'
-            };
-            for (let key in images) {
-                const img = new Image();
-                img.src = images[key];
-                this.imageCache[key] = img;
-            }
+            const ingredients = [
+                'top-bun', 'bottom-bun', 
+                'patty', 'egg', 'bacon', 
+                'cheese', 'tomato', 'lettuce'
+            ];
+            
+            ingredients.forEach(id => {
+                if (hamburgerGame.data.ingredients[id]) {
+                    const img = new Image();
+                    img.src = hamburgerGame.config.IMAGE_PATH + hamburgerGame.data.ingredients[id].image;
+                    this.imageCache[id] = img;
+                }
+            });
         },
 
         async startGame() {
@@ -134,28 +131,32 @@ Object.assign(hamburgerGame, {
 
             this.active = true;
             this.isPlaying = true;
+            this.isFinishing = false;
+            this.finishPhase = 0;
+            this.finishTimer = 0;
             this.score = 0;
+            this.heightScore = 0;
             this.combo = 0;
-            this.hunger = 50;
             this.notes = []; 
             this.startTime = this.audioCtx.currentTime + 3;
+            this.topBunY = -100;
             
-            // 状態リセット
-            this.isReacting = false;
-            if (this.reactionTimer) clearTimeout(this.reactionTimer);
-            this.updateJudgeFace('judge-normal'); 
+            this.cameraY = 0;
+            this.targetCameraY = 0;
+            this.bounceY = 0;
+            this.bounceVelocity = 0;
             
-            // アニメーションクラスリセット
-            const img = document.getElementById('ha-judge-face');
-            if (img) {
-                img.classList.remove('judge-bounce', 'judge-shake');
+            if (this.bgElement) {
+                this.bgElement.style.transform = `translateY(0px)`;
             }
+
+            this.stack = [];
+            this.addStackItem('bottom-bun', false); 
 
             this.generateChart(this.bgmBuffer.duration, 128);
 
-            document.getElementById('ha-score').textContent = '0';
+            document.getElementById('ha-height').textContent = '0';
             document.getElementById('ha-combo').textContent = '0';
-            this.updateHungerUI(); 
             document.getElementById('ha-judge-reaction').textContent = '';
             
             this.runCountdown(() => {
@@ -183,7 +184,9 @@ Object.assign(hamburgerGame, {
             this.bgmSource.start(0);
             
             this.bgmSource.onended = () => {
-                if (this.active) this.finishGame(true);
+                if (this.active && !this.isFinishing) {
+                    this.startFinishSequence();
+                }
             };
         },
 
@@ -191,12 +194,11 @@ Object.assign(hamburgerGame, {
             this.notes = [];
             const beatDuration = 60 / bpm;
             let time = 0;
-            
-            time += beatDuration * 4;
+            time += beatDuration * 4; 
 
-            while (time < duration - 2) {
-                if (Math.random() < 0.7) {
-                    const lane = Math.floor(Math.random() * 4);
+            while (time < duration) {
+                if (Math.random() < 0.7) { 
+                    const lane = Math.floor(Math.random() * 6);
                     const startX = this.targets[lane].x; 
 
                     this.notes.push({
@@ -251,17 +253,101 @@ Object.assign(hamburgerGame, {
         },
 
         update() {
+            if (!this.isPlaying && this.finishPhase === 0) return;
+            
             const currentTime = this.audioCtx.currentTime - this.startTime;
 
-            if (this.isPlaying) {
-                this.hunger -= 2.5 / 60; 
-                if (this.hunger <= 0) {
-                    this.hunger = 0;
-                    this.finishGame(false);
+            // --- カメラ追従処理 (通常時) ---
+            if (this.finishPhase === 0) {
+                const stackPixelHeight = this.getStackPixelHeight();
+                
+                // 修正: followOffsetを -20 に変更
+                const followOffset = -20; 
+                
+                if (stackPixelHeight > 50) { 
+                    this.targetCameraY = (stackPixelHeight * 1.5) - followOffset;
+                } else {
+                    this.targetCameraY = 0;
                 }
-                this.updateHungerUI();
+                this.cameraY += (this.targetCameraY - this.cameraY) * 0.2;
             }
 
+            // --- 背景スクロール ---
+            if (this.bgElement) {
+                this.bgElement.style.transform = `translateY(${this.cameraY * 0.3}px)`;
+            }
+
+            // --- 沈み込み物理演算 ---
+            const k = 0.2; 
+            const damping = 0.8; 
+            const force = -this.bounceY * k;
+            this.bounceVelocity += force;
+            this.bounceVelocity *= damping;
+            this.bounceY += this.bounceVelocity;
+
+            // --- 終了演出フェーズ管理 ---
+            if (this.isFinishing) {
+                const stackPixelHeight = this.getStackPixelHeight();
+                const stackTopY = this.baseY - stackPixelHeight; 
+                // 修正: トップバンズの着地目標Y座標の計算を調整
+                // スタックのてっぺんのY座標 (stackTopY) に対して、トップバンズの高さ分を引く必要はないが、
+                // stackTopY はあくまで積み上げ高さのY座標なので、ここにバンズの下端が来るイメージ
+                // 描画時は centerY - height なので、topBunY はバンズの下端のY座標として扱う
+                const targetTopBunY = stackTopY; 
+
+                // Phase 1: トップバンズ落下
+                if (this.finishPhase === 1) {
+                    // カメラは一旦トップが見える位置で待機
+                    this.targetCameraY = Math.max(0, stackPixelHeight - 200);
+                    this.cameraY += (this.targetCameraY - this.cameraY) * 0.1;
+
+                    if (this.topBunY < targetTopBunY) {
+                        this.topBunY += 20; 
+                    } else {
+                        this.topBunY = targetTopBunY;
+                        this.bounceVelocity = 15; // 着地衝撃
+                        
+                        setTimeout(() => {
+                            this.finishPhase = 2;
+                        }, 500);
+                    }
+                }
+                // Phase 2: 下までカメラ戻す
+                else if (this.finishPhase === 2) {
+                    this.targetCameraY = 0;
+                    this.cameraY += (this.targetCameraY - this.cameraY) * 0.05;
+
+                    if (Math.abs(this.cameraY) < 10) {
+                        this.cameraY = 0;
+                        this.finishPhase = 3; 
+                    }
+                }
+                // Phase 3: 下から上へゆっくりスクロールアップ
+                else if (this.finishPhase === 3) {
+                    const targetHeight = Math.max(0, stackPixelHeight + 100); 
+                    this.targetCameraY = targetHeight;
+                    
+                    const speed = 3; 
+                    if (this.cameraY < this.targetCameraY) {
+                        this.cameraY += speed;
+                    } else {
+                        this.cameraY = this.targetCameraY;
+                        this.finishPhase = 4;
+                        this.finishTimer = Date.now(); 
+                    }
+                }
+                // Phase 4: てっぺんで停止して2秒待機
+                else if (this.finishPhase === 4) {
+                    if (Date.now() - this.finishTimer > 2000) {
+                        if(this.active) this.finishGame(true);
+                        this.finishPhase = 5; 
+                    }
+                }
+                
+                return;
+            }
+
+            // ノーツ判定
             this.notes.forEach(note => {
                 if (!note.hit && !note.missed) {
                     if (currentTime > note.time + this.judgementWindows.miss) {
@@ -272,6 +358,12 @@ Object.assign(hamburgerGame, {
             });
         },
 
+        getStackPixelHeight() {
+            let h = 0;
+            this.stack.forEach(item => h += item.height * 0.6); 
+            return h;
+        },
+
         draw() {
             const ctx = this.ctx;
             const cvs = this.canvas;
@@ -279,47 +371,136 @@ Object.assign(hamburgerGame, {
 
             ctx.clearRect(0, 0, cvs.width, cvs.height);
 
-            this.notes.forEach(note => {
-                if (note.hit || note.missed) return;
+            ctx.save();
+            ctx.translate(0, this.cameraY); 
 
-                const spawnTime = note.time - this.fallDuration;
-                let progress = (currentTime - spawnTime) / this.fallDuration;
+            // --- バーガースタック描画 ---
+            const drawBaseY = this.baseY + this.bounceY; 
+            let currentY = drawBaseY;
+            const burgerScale = 0.8;
 
-                if (progress > 0 && progress < 1.5) { 
-                    const x = note.startX; 
-                    const y = this.spawnY + (note.targetY - this.spawnY) * progress;
+            this.stack.forEach((item, index) => {
+                const img = this.imageCache[item.id];
+                if (img) {
+                    const width = 150 * burgerScale; 
+                    const aspectRatio = img.naturalHeight / img.naturalWidth;
+                    const height = width * aspectRatio;
                     
-                    const size = 80;
-                    const img = this.imageCache[note.type];
-                    
-                    if (img && img.complete) {
-                        ctx.drawImage(img, x - size/2, y - size/2, size, size);
-                    } else {
-                        ctx.fillStyle = this.targets[note.laneIndex].color;
-                        ctx.beginPath();
-                        ctx.arc(x, y, size/2, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
+                    ctx.drawImage(img, this.centerX - width/2, currentY - height, width, height);
+                    currentY -= height * 0.6; 
                 }
+            });
+
+            // トップバンズ (終了演出中)
+            if (this.isFinishing) {
+                const img = this.imageCache['top-bun'];
+                if (img) { 
+                    const width = 150 * burgerScale;
+                    const aspectRatio = img.naturalHeight / img.naturalWidth;
+                    const height = width * aspectRatio;
+                    // 修正: topBunY に bounceY を加算してスタックと一緒に揺れるようにする
+                    // topBunY はバンズの下端Y座標とする
+                    ctx.drawImage(img, this.centerX - width/2, this.topBunY + this.bounceY - height, width, height);
+                }
+            }
+            
+            // Phase 4: 高さ表示
+            if (this.finishPhase === 4) {
+                ctx.font = "900 60px 'M PLUS Rounded 1c', sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 12;
+                
+                const text = `${this.heightScore}cm`;
+                const textX = this.centerX;
+                // テキスト位置調整
+                const textY = this.topBunY + this.bounceY - 120;
+
+                ctx.strokeText(text, textX, textY);
+                ctx.fillStyle = "#f39c12";
+                ctx.fillText(text, textX, textY);
+            }
+
+            ctx.restore();
+
+            // --- ノーツ描画 (演出中は描画しない) ---
+            if (!this.isFinishing) {
+                this.notes.forEach(note => {
+                    if (note.hit || note.missed) return;
+
+                    const spawnTime = note.time - this.fallDuration;
+                    let progress = (currentTime - spawnTime) / this.fallDuration;
+
+                    if (progress > 0 && progress < 1.3) { 
+                        const x = note.startX; 
+                        const y = this.spawnY + (note.targetY - this.spawnY) * progress;
+                        
+                        const width = 70;
+                        const height = 50; 
+                        const img = this.imageCache[note.type];
+                        
+                        if (img && img.complete) {
+                            ctx.drawImage(img, x - width/2, y - height/2, width, height);
+                        } else {
+                            ctx.fillStyle = this.targets[note.laneIndex].color;
+                            ctx.beginPath();
+                            ctx.arc(x, y, 30, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                });
+            }
+
+            // --- ターゲットラインガイド ---
+            this.targets.forEach(t => {
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, 40, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+                ctx.lineWidth = 3;
+                ctx.stroke();
             });
         },
 
+        addStackItem(id, animate = true) {
+            const data = hamburgerGame.data.ingredients[id];
+            if (data) {
+                const burgerScale = 0.8;
+                this.stack.push({
+                    id: id,
+                    height: (data.height || 30) * burgerScale
+                });
+                
+                if (animate) {
+                    this.bounceVelocity = 15; 
+                }
+                
+                if (id !== 'bottom-bun') {
+                    this.heightScore += 8;
+                    document.getElementById('ha-height').textContent = this.heightScore;
+                }
+            }
+        },
+
         bindControls() {
-            const buttons = [
-                document.getElementById('btn-burger'),
-                document.getElementById('btn-potato'),
-                document.getElementById('btn-coke'),
-                document.getElementById('btn-soft-cream')
+            const mapping = [
+                { id: 'btn-patty', lane: 0 },
+                { id: 'btn-egg', lane: 1 },
+                { id: 'btn-bacon', lane: 2 },
+                { id: 'btn-cheese', lane: 3 },
+                { id: 'btn-tomato', lane: 4 },
+                { id: 'btn-lettuce', lane: 5 }
             ];
 
-            buttons.forEach((btn, index) => {
+            mapping.forEach(map => {
+                const btn = document.getElementById(map.id);
                 if (!btn) return;
                 
                 const handleTap = (e) => {
-                    if (!this.active || !this.isPlaying) return;
+                    if (!this.active || !this.isPlaying || this.isFinishing) return;
                     e.preventDefault(); 
                     
-                    this.handleInput(index);
+                    this.handleInput(map.lane);
                     
                     btn.classList.add('active');
                     setTimeout(() => btn.classList.remove('active'), 100);
@@ -343,10 +524,8 @@ Object.assign(hamburgerGame, {
                 const diff = Math.abs(targetNote.time - currentTime);
                 targetNote.hit = true;
                 
+                this.addStackItem(targetNote.type);
                 this.showHitEffect(this.targets[laneIndex].x, this.targets[laneIndex].y, this.targets[laneIndex].color);
-
-                // リアクション実行
-                this.triggerReaction(this.laneTypes[laneIndex]);
 
                 if (diff <= this.judgementWindows.perfect) {
                     this.judge('perfect');
@@ -371,7 +550,6 @@ Object.assign(hamburgerGame, {
 
         judge(rating) {
             const reactionEl = document.getElementById('ha-judge-reaction');
-            const scoreEl = document.getElementById('ha-score');
             const comboEl = document.getElementById('ha-combo');
 
             let text = "";
@@ -381,27 +559,23 @@ Object.assign(hamburgerGame, {
                 text = "PERFECT!!";
                 color = "#f1c40f";
                 this.score += 500;
-                this.hunger = Math.min(100, this.hunger + 6);
                 this.combo++;
                 hamburgerGame.playSound(hamburgerGame.sounds.catch);
             } else if (rating === 'good') {
                 text = "GOOD!";
                 color = "#3498db";
                 this.score += 200;
-                this.hunger = Math.min(100, this.hunger + 3);
                 this.combo++;
                 hamburgerGame.playSound(hamburgerGame.sounds.select);
             } else { 
-                text = "BAD...";
+                text = "MISS...";
                 color = "#e74c3c";
-                this.hunger -= 10;
                 this.combo = 0;
                 hamburgerGame.playSound(hamburgerGame.sounds.failure);
             }
 
             if (this.combo > this.maxCombo) this.maxCombo = this.combo;
 
-            scoreEl.textContent = this.score;
             comboEl.textContent = this.combo;
             
             reactionEl.textContent = text;
@@ -411,101 +585,20 @@ Object.assign(hamburgerGame, {
             reactionEl.style.animation = 'none';
             reactionEl.offsetHeight; 
             reactionEl.style.animation = 'judge-pop 0.3s ease-out';
-            
-            this.updateHungerUI();
         },
 
-        // リアクション処理 (修正: バウンスアニメーション追加)
-        triggerReaction(type) {
-            this.isReacting = true;
-            if (this.reactionTimer) clearTimeout(this.reactionTimer);
-
-            let imgKey = 'judge-normal';
-            if (type === 'burger') imgKey = 'judge-eat-burger';
-            else if (type === 'potato') imgKey = 'judge-eat-potato';
-            else if (type === 'coke') imgKey = 'judge-drink-coke';
-            else if (type === 'soft-cream') imgKey = 'judge-eat-softcream';
-
-            // リアクション画像に変更
-            const img = document.getElementById('ha-judge-face');
-            if (img && this.imageCache[imgKey]) {
-                img.src = this.imageCache[imgKey].src;
-                
-                // バウンスアニメーション適用
-                img.classList.remove('judge-bounce');
-                img.classList.remove('judge-shake'); // リアクション中はシェイク解除
-                void img.offsetWidth; // リフロー強制
-                img.classList.add('judge-bounce');
-            }
-
-            // 0.5秒後に元の状態（ゲージ依存）に戻す
-            this.reactionTimer = setTimeout(() => {
-                const img = document.getElementById('ha-judge-face');
-                if (img) img.classList.remove('judge-bounce'); // バウンス解除
-                
-                this.isReacting = false;
-                this.updateJudgeFaceByHunger(); 
-            }, 500);
-        },
-
-        // 画像更新ヘルパー
-        updateJudgeFace(imgKey) {
-            const img = document.getElementById('ha-judge-face');
-            if (img && this.imageCache[imgKey]) {
-                img.src = this.imageCache[imgKey].src;
-            }
-        },
-
-        // ゲージ量に基づく表情更新 (修正: Angry時のシェイクアニメーション)
-        updateJudgeFaceByHunger() {
-            if (this.isReacting) return; // リアクション中は更新しない
-
-            let key = 'judge-normal';
-            let isAngry = false;
-
-            if (this.hunger >= 100) key = 'judge-happy';
-            else if (this.hunger >= 60) key = 'judge-normal';
-            else if (this.hunger >= 30) key = 'judge-worry';
-            else {
-                key = 'judge-angry';
-                isAngry = true;
-            }
-
-            this.updateJudgeFace(key);
-
-            // Angryならプルプルさせる
-            const img = document.getElementById('ha-judge-face');
-            if (img) {
-                if (isAngry) {
-                    if (!img.classList.contains('judge-shake')) {
-                        img.classList.add('judge-shake');
-                    }
-                } else {
-                    img.classList.remove('judge-shake');
-                }
-            }
-        },
-
-        updateHungerUI() {
-            const meter = document.getElementById('ha-hunger-meter');
-            if (meter) {
-                meter.style.width = this.hunger + '%';
-                
-                if (this.hunger < 30) {
-                    meter.style.background = '#e74c3c';
-                } else if (this.hunger < 60) {
-                    meter.style.background = '#f39c12';
-                } else {
-                    meter.style.background = 'linear-gradient(90deg, #f1c40f, #2ecc71)';
-                }
-            }
-            this.updateJudgeFaceByHunger();
+        startFinishSequence() {
+            this.isFinishing = true;
+            this.finishPhase = 1; // フェーズ1: トップバンズ落下
+            this.topBunY = -500; 
         },
 
         finishGame(completed) {
             this.isPlaying = false;
+            this.isFinishing = false;
+            this.finishPhase = 0;
             if (this.bgmSource) {
-                this.bgmSource.stop();
+                try { this.bgmSource.stop(); } catch(e){}
             }
             cancelAnimationFrame(this.animationId);
             
@@ -518,9 +611,11 @@ Object.assign(hamburgerGame, {
             let html = "";
             if (completed) {
                 hamburgerGame.playSound(hamburgerGame.sounds.rankUp);
-                html += `<h2 style="color:var(--main-orange)">審査員、大満足！</h2>`;
-                html += `<p style="font-size:1.5em">スコア: ${this.score}</p>`;
-                html += `<p>MAXコンボ: ${this.maxCombo}</p>`;
+
+                html += `<h2 style="color:var(--main-orange)">巨大バーガー完成！</h2>`;
+                html += `<p style="font-size:1.5em">高さ: ${this.heightScore}cm</p>`;
+                html += `<p>スコア: ${this.score} / コンボ: ${this.maxCombo}</p>`;
+                
                 const bonusMoney = Math.floor(this.score / 20);
                 hamburgerGame.state.money += bonusMoney;
                 hamburgerGame.state.totalRankScore += 100;
@@ -529,8 +624,7 @@ Object.assign(hamburgerGame, {
                 hamburgerGame.saveGameData();
             } else {
                 hamburgerGame.playSound(hamburgerGame.sounds.failure);
-                html += `<h2 style="color:var(--main-red)">審査員、激怒！</h2>`;
-                html += `<p>お腹が空きすぎて帰ってしまった...</p>`;
+                html += `<h2 style="color:var(--main-red)">ゲームオーバー...</h2>`;
                 html += `<p>スコア: ${this.score}</p>`;
             }
             
@@ -558,6 +652,7 @@ Object.assign(hamburgerGame, {
         close() {
             this.active = false;
             this.isPlaying = false;
+            this.isFinishing = false;
             this.notes = []; 
             if (this.bgmSource) {
                 try { this.bgmSource.stop(); } catch(e){}
