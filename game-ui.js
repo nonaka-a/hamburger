@@ -29,7 +29,6 @@ Object.assign(hamburgerGame, {
             rankUpModal: '#rank-up-modal', rankUpStarCount: '#rank-up-star-count', closeRankUpButton: '#close-rank-up-button',
             rankUpStarsDisplay: '#rank-up-stars-display',
 
-            // ランク情報確認用
             rankInfoModal: '#rank-info-modal',
             rankInfoStars: '#rank-info-stars',
             rankCurrentScore: '#rank-current-score',
@@ -41,7 +40,6 @@ Object.assign(hamburgerGame, {
             resetYesButton: '#reset-yes-button',
             resetNoButton: '#reset-no-button',
 
-            // コンテスト関連
             contestButton: '#contest-button',
             contestGameModal: '#contest-game-modal',
             contestStartScreen: '#contest-start-screen',
@@ -59,7 +57,6 @@ Object.assign(hamburgerGame, {
             contestRankingList: '#contest-ranking-list',
             contestRankingCloseButton: '#contest-ranking-close-button',
 
-            // コンテスト解放通知
             contestUnlockModal: '#contest-unlock-modal',
             contestUnlockCloseButton: '#contest-unlock-close-button'
         };
@@ -82,13 +79,11 @@ Object.assign(hamburgerGame, {
 
         this.elements.nextDayButton.addEventListener('click', () => this.nextDay());
         
-        // ★修正: ランクアップ閉じるボタンで次の通知へ
         this.elements.closeRankUpButton.addEventListener('click', () => {
             this.elements.rankUpModal.style.display = 'none';
             this.showNextUnlockNotification();
         });
 
-        // ランク情報確認
         this.elements.rankStarsContainer.addEventListener('click', () => this.showRankInfo());
         this.elements.closeRankInfoButton.addEventListener('click', () => {
             this.elements.rankInfoModal.style.display = 'none';
@@ -107,7 +102,6 @@ Object.assign(hamburgerGame, {
             this.resetGameData();
         });
 
-        // コンテスト関連イベント
         if (this.elements.contestButton) {
             this.elements.contestButton.addEventListener('click', () => this.openContestMenu());
         }
@@ -115,8 +109,6 @@ Object.assign(hamburgerGame, {
             this.elements.contestCloseButton.addEventListener('click', () => this.closeContestMenu());
         }
         if (this.elements.contestStartButton) {
-            // イベントリスナーはinitContestMenuで再設定される場合もあるが、初期バインドとして残す
-            // 実際は game-contest.js で置換される
             this.elements.contestStartButton.addEventListener('click', () => this.startContestGame());
         }
         if (this.elements.contestSubmitButton) {
@@ -129,20 +121,18 @@ Object.assign(hamburgerGame, {
             });
         }
 
-        // コンテスト解放通知を閉じる (ランク3)
         if (this.elements.contestUnlockCloseButton) {
             this.elements.contestUnlockCloseButton.addEventListener('click', () => {
                 this.elements.contestUnlockModal.style.display = 'none';
-                this.showNextUnlockNotification(); // ★追加
+                this.showNextUnlockNotification(); 
             });
         }
         
-        // ★新規: コンテスト解放通知を閉じる (ランク4)
         const hungryCloseBtn = document.getElementById('contest-hungry-unlock-close-button');
         if (hungryCloseBtn) {
             hungryCloseBtn.addEventListener('click', () => {
                 document.getElementById('contest-hungry-unlock-modal').style.display = 'none';
-                this.showNextUnlockNotification(); // ★追加
+                this.showNextUnlockNotification(); 
             });
         }
 
@@ -230,7 +220,6 @@ Object.assign(hamburgerGame, {
             b.innerHTML = `<img src="${this.config.IMAGE_PATH + d.image}"><span>${d.name}</span>`;
             if (d.stock !== Infinity) { b.innerHTML += `<div class="stock-display">${d.stock}</div>`; }
 
-            // ランク要件チェック
             if (d.reqRank && this.state.currentRank < d.reqRank) {
                 b.style.display = 'none';
             }
@@ -246,8 +235,13 @@ Object.assign(hamburgerGame, {
         const u = (items, p) => { Object.keys(items).forEach(id => { const b = p.querySelector(`[data-id="${id}"]`); if (b) { const d = items[id]; const s = b.querySelector('.stock-display'); if (s) s.textContent = d.stock; b.disabled = d.stock <= 0; b.classList.toggle('out-of-stock', d.stock <= 0); } }); };
         u(this.data.ingredients, this.elements.ingredientsPanel);
         u(this.data.drinks, this.elements.drinksPanel);
-        this.elements.drinksPanel.querySelectorAll('button').forEach(b => { b.classList.toggle('selected', this.state.playerSelection.drink && this.state.playerSelection.drink.id === b.dataset.id); });
-        const h = this.state.playerSelection.burger.length > 0 || this.state.playerSelection.drink;
+        
+        const selectedSideIds = this.state.playerSelection.sides.map(s => s.id);
+        this.elements.drinksPanel.querySelectorAll('button').forEach(b => { 
+            b.classList.toggle('selected', selectedSideIds.includes(b.dataset.id)); 
+        });
+        
+        const h = this.state.playerSelection.burger.length > 0 || this.state.playerSelection.sides.length > 0;
         this.elements.serveButton.disabled = this.state.playerSelection.burger.length === 0;
         this.elements.undoButton.disabled = this.state.playerSelection.burger.length === 0;
         this.elements.trashButton.disabled = !h;
@@ -257,33 +251,108 @@ Object.assign(hamburgerGame, {
         this.elements.orderList.innerHTML = '';
         if (this.state.currentOrder.burger.length > 0) {
             [...this.state.currentOrder.burger].reverse().forEach(id => { const li = document.createElement('li'); const data = this.data.ingredients[id]; const nameHTML = id.includes('bun') ? data.name : `<b>${data.name}</b>`; li.innerHTML = `<img src="${this.config.IMAGE_PATH + data.image}" alt="${data.name}">${nameHTML}`; this.elements.orderList.appendChild(li); });
-            if (this.state.currentOrder.drink) { const li = document.createElement('li'); const data = this.data.drinks[this.state.currentOrder.drink]; li.innerHTML = `<img src="${this.config.IMAGE_PATH + data.image}" alt="${data.name}"><b>${data.name}</b>`; this.elements.orderList.appendChild(li); }
+            
+            this.state.currentOrder.sides.forEach(id => {
+                const li = document.createElement('li'); 
+                const data = this.data.drinks[id]; 
+                li.innerHTML = `<img src="${this.config.IMAGE_PATH + data.image}" alt="${data.name}"><b>${data.name}</b>`; 
+                this.elements.orderList.appendChild(li); 
+            });
         } else { this.elements.orderList.innerHTML = '<li>（ご注文はまだかな？）</li>'; }
+        
         this.elements.burgerStack.innerHTML = '';
-        this.state.playerSelection.burger.forEach(item => {
+        this.state.playerSelection.burger.forEach((item, index) => {
             const container = document.createElement('div');
             container.className = 'ingredient-image-stack';
+            
+            // 重なりを調整するために高さを制限
+            container.style.height = '30px'; 
+            container.style.width = '100%';
+            container.style.position = 'relative';
+            container.style.display = 'flex';
+            container.style.justifyContent = 'center';
+            container.style.alignItems = 'flex-end';
+            container.style.overflow = 'visible'; // 画像とエフェクトのはみ出しを許可
+
+            // 指示のあったマージン設定（column-reverseなので視覚的な重なり調整）
+            // ただし height:30px が効いているため、追加のマージンは不要かもしれないが
+            // 指示通り記述を残すならここ（ただし挙動に注意）
+            // container.style.marginTop = '20px'; 
+            
             const img = document.createElement('img');
             img.src = this.config.IMAGE_PATH + this.data.ingredients[item.id].image;
+            img.style.height = 'auto';
+            img.style.maxHeight = 'none'; // 親の高さ制限を無視
+            img.style.position = 'absolute'; // 絶対配置で下揃えを確実に
+            img.style.bottom = '0';
+            img.style.left = '50%';
+            img.style.transform = 'translateX(-50%)';
+            
             container.appendChild(img);
 
             if (item.quality !== 'normal') {
                 const effect = document.createElement('div');
                 effect.className = `quality-effect quality-${item.quality}`;
+                
+                // エフェクトのサイズと位置を強制指定して小さくなるのを防ぐ
+                effect.style.width = '150px'; 
+                effect.style.height = '150px';
+                effect.style.position = 'absolute';
+                effect.style.left = '50%';
+                effect.style.top = '50%';
+                effect.style.transform = 'translate(-50%, -50%)';
+                effect.style.zIndex = '10';
+                effect.style.pointerEvents = 'none';
 
                 container.appendChild(effect);
+                
                 void effect.offsetWidth;
-
                 effect.style.animation = 'none';
                 requestAnimationFrame(() => {
                     effect.style.animation = '';
                 });
             }
-
             this.elements.burgerStack.appendChild(container);
         });
-        if (this.state.playerSelection.drink) { this.elements.drinkDisplay.innerHTML = `<img src="${this.config.IMAGE_PATH + this.data.drinks[this.state.playerSelection.drink.id].image}" alt="${this.data.drinks[this.state.playerSelection.drink.id].name}">`; } else { this.elements.drinkDisplay.innerHTML = '<span>（のみもの）</span>'; }
-        this.elements.drinkDisplayContainer.classList.toggle('visible', this.state.playerSelection.drink && this.state.playerSelection.drink.id);
+        
+         const drinkDisplay = this.elements.drinkDisplay;
+        const container = this.elements.drinkDisplayContainer;
+        const sideCount = this.state.playerSelection.sides.length;
+
+        if (sideCount > 0) {
+            let html = '';
+            this.state.playerSelection.sides.forEach(item => {
+                const data = this.data.drinks[item.id];
+                html += `<img src="${this.config.IMAGE_PATH + data.image}" alt="${data.name}" style="height: 90%; width: auto; object-fit: contain; margin: 0 5px;">`;
+            });
+            drinkDisplay.innerHTML = html;
+            
+            drinkDisplay.style.flexWrap = 'nowrap';
+            drinkDisplay.style.justifyContent = 'center';
+            drinkDisplay.style.alignItems = 'center';
+            
+            if (sideCount > 1) {
+                drinkDisplay.style.width = 'auto';
+                drinkDisplay.style.minWidth = '120px';
+            } else {
+                drinkDisplay.style.width = '120px';
+            }
+            
+            // 修正: 3つ以上ある場合、バーガーと被らないようにコンテナ全体を右にずらす
+            if (sideCount >= 3) {
+                container.style.transform = 'translateX(60px)'; // 右へ60px移動
+            } else {
+                container.style.transform = 'translateX(0)';
+            }
+            
+        } else { 
+            drinkDisplay.innerHTML = '<span>（のみもの）</span>'; 
+            drinkDisplay.style.flexWrap = 'nowrap';
+            drinkDisplay.style.width = '120px';
+            container.style.transform = 'translateX(0)';
+        }
+        
+        container.classList.toggle('visible', sideCount > 0);
     },
 
     setCustomerMessage(text) { this.elements.customerMessage.textContent = text; },
@@ -301,18 +370,34 @@ Object.assign(hamburgerGame, {
         scoreContainer.innerHTML = `<div class="score-label">できばえ</div><div class="score-value">${totalScore}${bonusScore !== 0 ? `<span class="score-bonus ${bonusScore > 0 ? 'plus' : 'minus'}">(${bonusScore > 0 ? '+' : ''}${bonusScore})</span>` : ''}</div><div class="score-unit">点</div>`;
         container.appendChild(scoreContainer);
 
-        const visualsContainer = document.createElement('div'); visualsContainer.className = 'completed-visuals'; const imageContainer = document.createElement('div'); imageContainer.className = 'burger-image-container'; let currentHeight = 0;
-        this.state.currentOrder.burger.forEach((id, index) => { const img = document.createElement('img'); img.src = this.config.IMAGE_PATH + this.data.ingredients[id].image; img.className = 'completed-ingredient-image'; img.style.bottom = `${currentHeight}px`; img.style.zIndex = index; img.style.animationDelay = `${index * 0.15}s`; imageContainer.appendChild(img); currentHeight += this.data.ingredients[id].height; }); visualsContainer.appendChild(imageContainer);
-        if (this.state.currentOrder.drink) { const drinkImg = document.createElement('img'); drinkImg.src = this.config.IMAGE_PATH + this.data.drinks[this.state.currentOrder.drink].image; drinkImg.className = 'completed-drink-image'; visualsContainer.appendChild(drinkImg); }
+        const visualsContainer = document.createElement('div'); 
+        visualsContainer.className = 'completed-visuals'; 
+        const imageContainer = document.createElement('div'); 
+        imageContainer.className = 'burger-image-container'; 
+        imageContainer.style.zIndex = 20;
+        let currentHeight = 0;
+        this.state.currentOrder.burger.forEach((id, index) => { const img = document.createElement('img'); img.src = this.config.IMAGE_PATH + this.data.ingredients[id].image; img.className = 'completed-ingredient-image'; img.style.bottom = `${currentHeight}px`; img.style.zIndex = index; img.style.animationDelay = `${index * 0.15}s`; imageContainer.appendChild(img); currentHeight += this.data.ingredients[id].height; }); 
+        visualsContainer.appendChild(imageContainer);
+        
+        this.state.currentOrder.sides.forEach((id, idx) => {
+            const drinkImg = document.createElement('img'); 
+            drinkImg.src = this.config.IMAGE_PATH + this.data.drinks[id].image; 
+            drinkImg.className = 'completed-drink-image'; 
+            drinkImg.style.marginLeft = (10 + (idx * 5)) + 'px'; 
+            drinkImg.style.zIndex = 10 + idx;
+            visualsContainer.appendChild(drinkImg); 
+        });
+        
         let finalBurgerName = burgerName;
-        if (this.state.playerSelection.drink) {
-            const drinkData = this.data.drinks[this.state.playerSelection.drink.id];
-            let qualityName;
-            if (drinkData.qualityNames) {
-                qualityName = drinkData.qualityNames[this.state.playerSelection.drink.quality];
-            }
-            finalBurgerName += ` + ${qualityName || drinkData.name}`;
+        if (this.state.playerSelection.sides.length > 0) {
+            const sideNames = this.state.playerSelection.sides.map(s => {
+                const d = this.data.drinks[s.id];
+                const qName = d.qualityNames ? d.qualityNames[s.quality] : null;
+                return qName || d.name;
+            });
+            finalBurgerName += ` + ${sideNames.join(' + ')}`;
         }
+        
         const nameEl = document.createElement('div'); nameEl.className = 'burger-name'; nameEl.textContent = finalBurgerName; const priceEl = document.createElement('div'); priceEl.className = 'burger-price'; priceEl.textContent = `${earnings}円で売れました！`; container.appendChild(visualsContainer); container.appendChild(nameEl); container.appendChild(priceEl); completedBurgerModal.appendChild(container); completedBurgerModal.style.display = 'flex';
         setTimeout(() => { completedBurgerModal.style.display = 'none'; this.resetForNextCustomer(); }, 3500);
     },
@@ -436,7 +521,6 @@ Object.assign(hamburgerGame, {
         }
     },
 
-    // 解放通知キュー
     unlockNotificationQueue: [],
 
     updateRankDisplay() {
@@ -475,9 +559,8 @@ Object.assign(hamburgerGame, {
             const oldRank = this.state.currentRank;
             this.state.currentRank = newRank;
 
-            this.unlockNotificationQueue = []; // キュー初期化
+            this.unlockNotificationQueue = []; 
 
-            // コンテスト解放通知 (ランク3)
             if (oldRank < 3 && newRank >= 3) {
                 this.unlockNotificationQueue.push(() => {
                     if (this.elements.contestUnlockModal) {
@@ -487,7 +570,6 @@ Object.assign(hamburgerGame, {
                 });
             }
 
-            // コンテスト解放通知 (ランク4)
             if (oldRank < 4 && newRank >= 4) {
                 this.unlockNotificationQueue.push(() => {
                     const modal = document.getElementById('contest-hungry-unlock-modal');
@@ -498,13 +580,11 @@ Object.assign(hamburgerGame, {
                 });
             }
 
-            // 新商品解放チェック
             Object.keys(this.data.drinks).forEach(id => {
                 const item = this.data.drinks[id];
                 if (item.reqRank && oldRank < item.reqRank && newRank >= item.reqRank) {
                     this.unlockNotificationQueue.push(() => {
                         this.showItemUnlockModal(item);
-                        // ボタンを表示状態にする
                         const btn = this.elements.drinksPanel.querySelector(`button[data-id="${id}"]`);
                         if (btn) btn.style.display = 'flex';
                     });
@@ -569,7 +649,6 @@ Object.assign(hamburgerGame, {
         this.elements.rankUpModal.style.display = 'flex';
     },
 
-    // ★新規メソッド: 次の解放通知を表示
     showNextUnlockNotification() {
         if (this.unlockNotificationQueue.length > 0) {
             const nextAction = this.unlockNotificationQueue.shift();
@@ -577,19 +656,16 @@ Object.assign(hamburgerGame, {
         }
     },
 
-    // 追加: ランク情報表示
     showRankInfo() {
         const modal = this.elements.rankInfoModal;
         const starContainer = this.elements.rankInfoStars;
         const currentScoreEl = this.elements.rankCurrentScore;
         const nextTargetEl = this.elements.rankNextTarget;
 
-        // 星の表示
         starContainer.innerHTML = '';
         const starPath = "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
         const svgNS = "http://www.w3.org/2000/svg";
 
-        // 現在のランク分の星を表示（最大5）
         const displayRank = this.state.currentRank || 0;
         for (let i = 0; i < 5; i++) {
             const svg = document.createElementNS(svgNS, "svg");
@@ -604,16 +680,15 @@ Object.assign(hamburgerGame, {
             path.setAttribute("stroke-linejoin", "round");
 
             if (i < displayRank) {
-                path.setAttribute("fill", "#ffd700"); // 獲得済み
+                path.setAttribute("fill", "#ffd700"); 
             } else {
-                path.setAttribute("fill", "#eee"); // 未獲得
+                path.setAttribute("fill", "#eee"); 
             }
 
             svg.appendChild(path);
             starContainer.appendChild(svg);
         }
 
-        // スコア情報の表示
         const currentScore = this.state.totalRankScore;
         currentScoreEl.textContent = currentScore;
 
@@ -627,9 +702,6 @@ Object.assign(hamburgerGame, {
     },
 
     showItemUnlockModal(item) {
-        // コンテスト解放モーダルの構造を再利用、なければ生成
-        // ここでは動的に生成して body か fixed-container に追加する
-
         const overlay = document.createElement('div');
         Object.assign(overlay.style, {
             position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
@@ -676,7 +748,7 @@ Object.assign(hamburgerGame, {
 
         btn.onclick = () => {
             overlay.remove();
-            this.showNextUnlockNotification(); // ★追加
+            this.showNextUnlockNotification(); 
         };
 
         panel.appendChild(title);

@@ -454,6 +454,15 @@ body {
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
+
+/* タイトル「ご注文はこちら！」 */
+#order-bubble h3 {
+    margin: 0px 0 0px 0; /* 上下マージンを詰める */
+    font-size: 1.3em;     /* 必要に応じてサイズ調整 */
+    
+}
+
+
 #order-list {
     list-style: none;
     padding: 0;
@@ -471,7 +480,7 @@ body {
 }
 
 #order-list li img {
-    width: 30px;
+    width: 28px;
     height: auto;
     vertical-align: middle;
 }
@@ -480,6 +489,8 @@ body {
     font-weight: 800;
     color: #c0392b;
 }
+
+
 
 #kitchen-display-area {
     flex-grow: 1;

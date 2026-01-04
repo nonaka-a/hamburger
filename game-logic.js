@@ -1,31 +1,33 @@
+// --- START OF FILE game-logic.js ---
+
 Object.assign(hamburgerGame, {
     startGame() {
         this.elements.titleScreen.style.display = 'none';
         this.elements.gameWrapper.style.display = 'flex';
 
-        // --- ゲーム開始時にUIを表示 ---
         this.elements.shopButton.style.display = 'flex';
         this.elements.settingsIcon.style.display = 'flex';
         document.querySelector('#time-display-container').style.display = 'flex';
 
-        // コンテストボタンの表示制御（ランク3以上なら表示）
         if (this.state.currentRank >= 3 && this.elements.contestButton) {
             this.elements.contestButton.style.display = 'flex';
         } else if (this.elements.contestButton) {
             this.elements.contestButton.style.display = 'none';
         }
-        // --------------------------------
 
         this.sounds.bgm.play().catch(e => { });
         this.initializePanels();
         this.bindGameEvents();
+
+        this.state.currentOrder = { burger: [], sides: [] }; 
+        this.state.playerSelection = { burger: [], sides: [] }; 
 
         this.updateUI();
         this.startDay();
     },
 
     startDay() {
-        this.state.time = 600; // 10:00
+        this.state.time = 600; 
         this.state.isShopOpen = false;
         this.state.dailyStats = { revenue: 0, expenses: 0, customers: 0, score: 0 };
         this.updateTimeDisplay();
@@ -36,38 +38,30 @@ Object.assign(hamburgerGame, {
 
             if (this.state.gameTimer) clearInterval(this.state.gameTimer);
             this.state.gameTimer = setInterval(() => {
-                if (this.state.minigameActive) return; // ミニゲーム中は止めるが、営業中チェックは外す（閉店処理中でも時間は止めたくない場合）
-                // ただし、閉店後は isShopOpen=false になるが、最後の客対応中は時計を止めたいので、
-                // updateTime内で時間上限チェックをする方式に変更。
-
+                if (this.state.minigameActive) return; 
                 this.updateTime();
             }, 300);
         });
     },
 
     updateTime() {
-        // 20:00 (1200分) 未満なら進める
         if (this.state.time < 1200) {
             this.state.time++;
             this.updateTimeDisplay();
         }
 
-        // 20:00になったら終了試行
         if (this.state.time >= 1200) {
             this.tryEndDay();
         }
     },
 
     tryEndDay() {
-        // 閉店時間になったので、新規客ストップフラグを立てる
         this.state.isShopOpen = false;
 
-        // 接客中（オーダー受付中 または 提供待ち）ならまだ終了しない
         if (this.state.currentCustomer) {
             return;
         }
 
-        // 接客中でなければ終了処理へ
         this.endDay();
     },
 
@@ -90,16 +84,14 @@ Object.assign(hamburgerGame, {
 
         this.state.day++;
         this.state.currentCustomer = null;
-        this.state.playerSelection = { burger: [], drink: null };
-        this.state.currentOrder = { burger: [], drink: null };
+        this.state.playerSelection = { burger: [], sides: [] };
+        this.state.currentOrder = { burger: [], sides: [] };
         this.updateUI();
 
         this.startDay();
     },
 
     handleItemClick(id, type) {
-        // 閉店時間過ぎても接客中なら操作可能にするため !this.state.isShopOpen のチェックは外すか、currentCustomerがいるなら許可する
-        // ここでは「接客中(currentCustomerあり)ならOK」とする
         if (!this.state.currentCustomer && !this.state.isShopOpen) return;
         if (!this.state.isAcceptingOrder || this.state.minigameActive) return;
 
@@ -114,18 +106,16 @@ Object.assign(hamburgerGame, {
             if (drinkData.minigame === 'pour') {
                 this.startPourMinigame(id);
             } else {
-                // ポテトやソフトクリームなどミニゲームなしのアイテム
                 this.addDrink(id, 'normal');
             }
         }
     },
 
     newCustomer() {
-        if (!this.state.isShopOpen) return; // 開店中のみ
+        if (!this.state.isShopOpen) return; 
         this.setCustomerMessage('いらっしゃいませ！');
         this.state.isAcceptingOrder = false;
         setTimeout(() => {
-            // 待機中に閉店時間になった場合のガード
             if (!this.state.isShopOpen) {
                 this.tryEndDay();
                 return;
@@ -150,34 +140,59 @@ Object.assign(hamburgerGame, {
         const t = [];
         for (let i = 0; i < n; i++) { t.push(middleIngredients[Math.floor(Math.random() * middleIngredients.length)]); }
         this.state.currentOrder.burger = ['bottom-bun', ...t, 'top-bun'];
-        this.state.currentOrder.drink = null;
+        
+        this.state.currentOrder.sides = [];
+        const currentRank = this.state.currentRank || 0;
 
+        // 固定客の特例処理を先に記述し、return するかフラグ管理する
         if (this.state.currentCustomer === 'customer7.png') {
-            this.state.currentOrder.drink = 'orange-juice';
-        } else if (this.state.currentCustomer === 'customer6.png') {
-            this.state.currentOrder.drink = 'coke';
-        } else {
-            if (Math.random() < 0.6) { // 少し確率上げる
-                // ランク要件を満たしているドリンク・サイドメニューのみ対象にする
-                const currentRank = this.state.currentRank || 0;
-                const availableDrinks = Object.keys(drinks).filter(id => {
-                    const d = drinks[id];
-                    // ランクチェックを行う
-                    if (d.reqRank && currentRank < d.reqRank) return false;
-                    return true;
-                });
-                if (availableDrinks.length > 0) {
-                    const drinkId = availableDrinks[Math.floor(Math.random() * availableDrinks.length)];
-                    this.state.currentOrder.drink = drinkId;
-                }
+            // customer7: オレンジジュースは必ず注文
+            this.state.currentOrder.sides = ['orange-juice'];
+
+            // さらに解放状況に応じてポテトとソフトクリームを追加
+            if (currentRank >= 1) {
+                this.state.currentOrder.sides.push('potato');
             }
+            if (currentRank >= 2) {
+                this.state.currentOrder.sides.push('soft-cream');
+            }
+            return;
+        } else if (this.state.currentCustomer === 'customer6.png') {
+            this.state.currentOrder.sides = ['coke'];
+            return;
         }
+
+        // 通常客のランダム生成ロジック (既存コード)
+        const drinkOptions = ['coke', 'orange-juice', 'calpis'].filter(id => {
+            const d = drinks[id];
+            return !d.reqRank || currentRank >= d.reqRank;
+        });
+        const otherSideOptions = ['potato', 'soft-cream'].filter(id => {
+            const d = drinks[id];
+            return !d.reqRank || currentRank >= d.reqRank;
+        });
+
+        if (drinkOptions.length > 0 && Math.random() < 0.7) {
+            const drinkId = drinkOptions[Math.floor(Math.random() * drinkOptions.length)];
+            this.state.currentOrder.sides.push(drinkId);
+        }
+
+        otherSideOptions.forEach(id => {
+            if (Math.random() < 0.3) {
+                this.state.currentOrder.sides.push(id);
+            }
+        });
     },
 
     serveOrder() {
         if (!this.state.isAcceptingOrder || this.state.playerSelection.burger.length === 0) return;
         this.state.isAcceptingOrder = false;
-        const bC = JSON.stringify(this.state.playerSelection.burger.map(i => i.id).sort()) === JSON.stringify([...this.state.currentOrder.burger].sort()); const dC = (this.state.playerSelection.drink ? this.state.playerSelection.drink.id : null) === this.state.currentOrder.drink;
+
+        const bC = JSON.stringify(this.state.playerSelection.burger.map(i => i.id).sort()) === JSON.stringify([...this.state.currentOrder.burger].sort());
+        
+        const orderSides = [...this.state.currentOrder.sides].sort();
+        const playerSides = this.state.playerSelection.sides.map(s => s.id).sort();
+        const dC = JSON.stringify(orderSides) === JSON.stringify(playerSides);
 
         if (bC && dC) {
             this.playSound(this.sounds.success);
@@ -186,7 +201,6 @@ Object.assign(hamburgerGame, {
             let baseScore = 0;
             let bonusScore = 0;
 
-            // アイテム所持判定
             const hasPan = this.state.purchasedItems.includes('premium_pan');
             const hasServer = this.state.purchasedItems.includes('juice_server');
             const hasKnife = this.state.purchasedItems.includes('vegetable_knife');
@@ -194,106 +208,61 @@ Object.assign(hamburgerGame, {
             const hasGlasses = this.state.purchasedItems.includes('connoisseur_glasses');
             const hasSauce = this.state.purchasedItems.includes('secret_sauce');
 
-            // 定義データ取得（価格等はdata.jsを参照するが、ボーナス値はロジック内で固定またはdata.jsから取得）
-            // ここではロジック内で処理します
-
             this.state.playerSelection.burger.forEach(item => {
                 const data = this.data.ingredients[item.id];
                 const multiplier = data.qualityMultipliers ? data.qualityMultipliers[item.quality] : 1;
                 earnings += data.price * multiplier;
 
-                // 基本点
                 let itemScore = 10;
-
-                // 品質ボーナス
                 if (item.quality === 'excellent') bonusScore += 20;
                 else if (item.quality === 'good') bonusScore += 10;
                 else if (item.quality === 'bad') bonusScore -= 10;
 
-                // --- アイテム効果 ---
-
-                // 1. フライパン効果 (焼き対象なら+20)
-                if (hasPan && ['patty', 'bacon', 'egg'].includes(item.id)) {
-                    itemScore += 20;
-                }
-
-                // 2. 野菜包丁効果
-                if (hasKnife && ['lettuce', 'tomato', 'pickles', 'onion', 'avocado'].includes(item.id)) {
-                    itemScore += 20;
-                }
-
-                // 3. バンズマシーン効果
-                if (hasBunsMachine && ['top-bun', 'bottom-bun'].includes(item.id)) {
-                    itemScore += 10;
-                }
-
-                // 4. 目利きのめがね (すべての材料+10)
-                if (hasGlasses) {
-                    itemScore += 10;
-                }
+                if (hasPan && ['patty', 'bacon', 'egg'].includes(item.id)) itemScore += 20;
+                if (hasKnife && ['lettuce', 'tomato', 'pickles', 'onion', 'avocado'].includes(item.id)) itemScore += 20;
+                if (hasBunsMachine && ['top-bun', 'bottom-bun'].includes(item.id)) itemScore += 10;
+                if (hasGlasses) itemScore += 10;
 
                 baseScore += itemScore;
             });
 
-            if (this.state.playerSelection.drink) {
-                const item = this.state.playerSelection.drink;
+            this.state.playerSelection.sides.forEach(item => {
                 const data = this.data.drinks[item.id];
-                const multiplier = data.qualityMultipliers ? data.qualityMultipliers[item.quality] : 1;
+                const multiplier = data.qualityMultipliers ? (data.qualityMultipliers[item.quality] || 1) : 1;
                 earnings += data.price * multiplier;
 
                 let itemScore = 10;
-
                 if (item.quality === 'excellent') bonusScore += 20;
                 else if (item.quality === 'good') bonusScore += 10;
 
-                // --- アイテム効果 ---
-
-                // 1. ジュースサーバー効果
-                if (hasServer) {
-                    itemScore += 20;
-                }
-
-                // 2. 目利きのめがね (ジュースも材料とみなすなら+10)
-                // 「すべての材料」の解釈によりますが、ここでは食材全般として加算します
-                if (hasGlasses) {
-                    itemScore += 10;
-                }
+                if (hasServer && ['coke', 'orange-juice', 'calpis'].includes(item.id)) itemScore += 20;
+                if (hasGlasses) itemScore += 10;
 
                 baseScore += itemScore;
-            }
+            });
 
-            // --- 5. 秘伝のソース (常に+50) ---
-            if (hasSauce) {
-                baseScore += 50;
-            }
-            // -----------------------------
+            if (hasSauce) baseScore += 50;
 
             const finalEarnings = Math.round(earnings);
             this.state.money += finalEarnings;
-
             this.state.dailyStats.revenue += finalEarnings;
             this.state.dailyStats.customers++;
-
             const earnedScore = baseScore + bonusScore;
             this.state.dailyStats.score += earnedScore;
-
-            // --- ランクスコア加算と表示更新 ---
             this.state.totalRankScore += earnedScore;
             this.updateRankDisplay();
-            // -----------------------------
 
             const bN = this.getBurgerName(this.state.currentOrder.burger);
             this.showMoneyPopup(finalEarnings);
             this.setCustomerMessage(`「${bN}」おいしい！`);
             this.showCompletedBurger(bN, finalEarnings, earnedScore, bonusScore);
         } else {
-            // ... (失敗時の処理) ...
             this.playSound(this.sounds.failure);
             this.setCustomerMessage('あれ、ちがうみたい…');
             setTimeout(() => {
                 if (!this.state.isShopOpen) return;
                 this.state.playerSelection.burger = [];
-                this.state.playerSelection.drink = null;
+                this.state.playerSelection.sides = [];
                 this.updateUI();
                 this.setCustomerMessage('もう一度お願い！');
                 this.playSound(this.sounds.order);
@@ -305,19 +274,50 @@ Object.assign(hamburgerGame, {
 
     addIngredient(id, quality) { if (!this.state.isAcceptingOrder) return; this.playSound(this.sounds.select); this.data.ingredients[id].stock--; this.state.playerSelection.burger.push({ id, quality }); this.updateUI(); },
 
-    addDrink(id, quality) { if (!this.state.isAcceptingOrder) return; if (quality === 'failed') { this.state.playerSelection.drink = null; this.playSound(this.sounds.failure); this.updateUI(); return; } if (this.state.playerSelection.drink) { this.data.drinks[this.state.playerSelection.drink.id].stock++; } this.state.playerSelection.drink = { id, quality }; this.data.drinks[id].stock--; this.playSound(this.sounds.select); this.updateUI(); },
+    addDrink(id, quality) { 
+        if (!this.state.isAcceptingOrder) return; 
+        
+        if (quality === 'failed') { 
+            this.playSound(this.sounds.failure); 
+            this.updateUI(); 
+            return; 
+        } 
+
+        const existingIndex = this.state.playerSelection.sides.findIndex(s => s.id === id);
+        
+        if (existingIndex > -1) {
+            // ミニゲームなしアイテム(ポテト等)はトグル動作でキャンセル
+            if (this.data.drinks[id].minigame === 'none') {
+                this.data.drinks[id].stock++;
+                this.state.playerSelection.sides.splice(existingIndex, 1);
+                this.playSound(this.sounds.select);
+            } else {
+                // ミニゲームありアイテム(ジュース)は品質上書き
+                this.state.playerSelection.sides[existingIndex].quality = quality;
+                this.playSound(this.sounds.select);
+            }
+        } else {
+            // 新規追加
+            this.state.playerSelection.sides.push({ id, quality });
+            this.data.drinks[id].stock--;
+            this.playSound(this.sounds.select);
+        }
+        
+        this.updateUI(); 
+    },
 
     undoLastIngredient() { if (this.state.playerSelection.burger.length === 0) return; this.playSound(this.sounds.select); const removed = this.state.playerSelection.burger.pop(); if (removed && this.data.ingredients[removed.id].stock !== Infinity) { this.data.ingredients[removed.id].stock++; } this.updateUI(); },
 
     trashOrder(silent = false) {
-        if (this.state.playerSelection.burger.length === 0 && !this.state.playerSelection.drink) return;
+        if (this.state.playerSelection.burger.length === 0 && this.state.playerSelection.sides.length === 0) return;
         if (!silent) this.playSound(this.sounds.failure);
 
-        if (this.state.playerSelection.drink) {
-            const drinkId = this.state.playerSelection.drink.id;
-            if (this.data.drinks[drinkId].stock < this.state.maxStock) { this.data.drinks[drinkId].stock++; }
-            this.state.playerSelection.drink = null;
-        }
+        this.state.playerSelection.sides.forEach(item => {
+            if (this.data.drinks[item.id].stock < this.state.maxStock) {
+                this.data.drinks[item.id].stock++;
+            }
+        });
+        this.state.playerSelection.sides = [];
 
         this.state.playerSelection.burger.forEach(item => {
             if (this.data.ingredients[item.id].stock !== Infinity && this.data.ingredients[item.id].stock < this.state.maxStock) {
@@ -363,12 +363,11 @@ Object.assign(hamburgerGame, {
     },
 
     resetForNextCustomer() {
-        this.state.currentOrder = { burger: [], drink: null };
-        this.state.playerSelection = { burger: [], drink: null };
+        this.state.currentOrder = { burger: [], sides: [] };
+        this.state.playerSelection = { burger: [], sides: [] };
         this.elements.customerImage.classList.remove('visible');
         this.state.currentCustomer = null;
 
-        // 修正: 閉店状態（isShopOpen=false）なら終了処理へ
         if (!this.state.isShopOpen) {
             this.endDay();
             return;
