@@ -24,7 +24,7 @@ Object.assign(hamburgerGame, {
         // 積み上げ・カメラ制御
         stack: [], 
         isFinishing: false, 
-        topBunY: -100, 
+        topBunY: -1000, 
         
         // カメラ制御用
         cameraY: 0, 
@@ -139,7 +139,7 @@ Object.assign(hamburgerGame, {
             this.combo = 0;
             this.notes = []; 
             this.startTime = this.audioCtx.currentTime + 3;
-            this.topBunY = -100;
+            this.topBunY = -1000;
             
             this.cameraY = 0;
             this.targetCameraY = 0;
@@ -261,14 +261,14 @@ Object.assign(hamburgerGame, {
             if (this.finishPhase === 0) {
                 const stackPixelHeight = this.getStackPixelHeight();
                 
-                // 修正: followOffsetを -20 に変更
-                const followOffset = -20; 
+                // 修正: followOffset を 200 に設定して冒頭のガタつきを防止
+                // ある程度高さが出るまでカメラは動かないようにする
+                const followOffset = 200; 
                 
-                if (stackPixelHeight > 50) { 
-                    this.targetCameraY = (stackPixelHeight * 1.5) - followOffset;
-                } else {
-                    this.targetCameraY = 0;
-                }
+                // 計算式変更: 高さからオフセットを引いた分だけカメラを上げる
+                // これにより高さが200を超えて初めてカメラが動き出す
+                this.targetCameraY = Math.max(0, (stackPixelHeight * 1.5) - followOffset);
+                
                 this.cameraY += (this.targetCameraY - this.cameraY) * 0.2;
             }
 
@@ -288,21 +288,20 @@ Object.assign(hamburgerGame, {
             // --- 終了演出フェーズ管理 ---
             if (this.isFinishing) {
                 const stackPixelHeight = this.getStackPixelHeight();
+                // スタックのてっぺんY座標（論理座標）
                 const stackTopY = this.baseY - stackPixelHeight; 
-                // 修正: トップバンズの着地目標Y座標の計算を調整
-                // スタックのてっぺんのY座標 (stackTopY) に対して、トップバンズの高さ分を引く必要はないが、
-                // stackTopY はあくまで積み上げ高さのY座標なので、ここにバンズの下端が来るイメージ
-                // 描画時は centerY - height なので、topBunY はバンズの下端のY座標として扱う
-                const targetTopBunY = stackTopY; 
+                
+                // 修正: トップバンズのターゲット位置
+                // stackTopY は最上段の具材の上端になっているはずなので、そのままターゲットにする
+                const targetTopBunY = stackTopY;
 
                 // Phase 1: トップバンズ落下
                 if (this.finishPhase === 1) {
-                    // カメラは一旦トップが見える位置で待機
                     this.targetCameraY = Math.max(0, stackPixelHeight - 200);
                     this.cameraY += (this.targetCameraY - this.cameraY) * 0.1;
 
                     if (this.topBunY < targetTopBunY) {
-                        this.topBunY += 20; 
+                        this.topBunY += 25; 
                     } else {
                         this.topBunY = targetTopBunY;
                         this.bounceVelocity = 15; // 着地衝撃
@@ -324,10 +323,10 @@ Object.assign(hamburgerGame, {
                 }
                 // Phase 3: 下から上へゆっくりスクロールアップ
                 else if (this.finishPhase === 3) {
-                    const targetHeight = Math.max(0, stackPixelHeight + 100); 
+                    const targetHeight = Math.max(0, stackPixelHeight + 200); 
                     this.targetCameraY = targetHeight;
                     
-                    const speed = 3; 
+                    const speed = 4; 
                     if (this.cameraY < this.targetCameraY) {
                         this.cameraY += speed;
                     } else {
@@ -386,7 +385,10 @@ Object.assign(hamburgerGame, {
                     const aspectRatio = img.naturalHeight / img.naturalWidth;
                     const height = width * aspectRatio;
                     
+                    // 中央に描画 (currentYは底辺)
                     ctx.drawImage(img, this.centerX - width/2, currentY - height, width, height);
+                    
+                    // 次のアイテムの底辺Y座標
                     currentY -= height * 0.6; 
                 }
             });
@@ -398,8 +400,9 @@ Object.assign(hamburgerGame, {
                     const width = 150 * burgerScale;
                     const aspectRatio = img.naturalHeight / img.naturalWidth;
                     const height = width * aspectRatio;
-                    // 修正: topBunY に bounceY を加算してスタックと一緒に揺れるようにする
-                    // topBunY はバンズの下端Y座標とする
+                    // 修正: topBunY はバンズの「底辺」Y座標
+                    // 描画は左上座標を指定する必要があるので height を引く
+                    // bounceY はトップバンズにも影響させる
                     ctx.drawImage(img, this.centerX - width/2, this.topBunY + this.bounceY - height, width, height);
                 }
             }
@@ -415,7 +418,8 @@ Object.assign(hamburgerGame, {
                 const text = `${this.heightScore}cm`;
                 const textX = this.centerX;
                 // テキスト位置調整
-                const textY = this.topBunY + this.bounceY - 120;
+                // topBunY (下端) - バンズ高さ概算 - 余白 + bounceY
+                const textY = this.topBunY - 120 + this.bounceY;
 
                 ctx.strokeText(text, textX, textY);
                 ctx.fillStyle = "#f39c12";
@@ -424,7 +428,7 @@ Object.assign(hamburgerGame, {
 
             ctx.restore();
 
-            // --- ノーツ描画 (演出中は描画しない) ---
+            // --- ノーツ描画 ---
             if (!this.isFinishing) {
                 this.notes.forEach(note => {
                     if (note.hit || note.missed) return;
@@ -589,8 +593,8 @@ Object.assign(hamburgerGame, {
 
         startFinishSequence() {
             this.isFinishing = true;
-            this.finishPhase = 1; // フェーズ1: トップバンズ落下
-            this.topBunY = -500; 
+            this.finishPhase = 1; 
+            this.topBunY = -1000; 
         },
 
         finishGame(completed) {
